@@ -2,12 +2,15 @@ import telebot
 import time
 import random
 import sqlite3
+import os
 import bands
 
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
 
-DB_PATH = "/home/musicwar/musicwar.db"
+DB_PATH = "musicwar.db"
+if not os.path.exists(DB_PATH):
+    open(DB_PATH, "w").close()
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -478,6 +481,4 @@ def handle_callbacks(call):
         conn.commit()
         conn.close()
         bot.edit_message_text("Буст x2 активирован на 1 час!", chat_id=call.message.chat.id, message_id=call.message.message_id)
-        bot.answer_callback_query(call.id)
-        return
     
