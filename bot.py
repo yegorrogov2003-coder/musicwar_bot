@@ -205,6 +205,22 @@ def handle_text(message):
         msg = msg + "\nОпыт: +" + str(exp_gain) + "\nУровень: " + str(user["level"])
         bot.send_message(message.chat.id, msg)
     
+    # ---------- ГРУППИРОВКА ----------
+    elif text == "Группировка" or text == "🎵 Группировка":
+        if user["group_name"]:
+            bot.send_message(message.chat.id, "Твоя группировка: " + user["group_name"])
+            return
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(
+            telebot.types.InlineKeyboardButton("Реперы", callback_data="group_Реперы"),
+            telebot.types.InlineKeyboardButton("Рокеры", callback_data="group_Рокеры")
+        )
+        markup.add(
+            telebot.types.InlineKeyboardButton("Меломаны", callback_data="group_Меломаны"),
+            telebot.types.InlineKeyboardButton("Клубмены", callback_data="group_Клубмены")
+        )
+        bot.send_message(message.chat.id, "Выбери группировку:", reply_markup=markup)
+    
     # ---------- ПРОФИЛЬ ----------
     elif text == "Профиль" or text == "👤 Профиль":
         group = user["group_name"] or "не выбрана"
@@ -240,22 +256,6 @@ def handle_text(message):
             income = biz["income"] * (1 + b["level"] * 0.1)
             msg = msg + biz["name"] + " (ур." + str(b["level"]) + ") — " + str(int(income)) + " монет/час\n"
         bot.send_message(message.chat.id, msg)
-    
-    # ---------- ГРУППИРОВКА ----------
-    elif text == "Группировка" or text == "🎵 Группировка":
-        if user["group_name"]:
-            bot.send_message(message.chat.id, "Твоя группировка: " + user["group_name"])
-            return
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(
-            telebot.types.InlineKeyboardButton("Реперы", callback_data="group_Реперы"),
-            telebot.types.InlineKeyboardButton("Рокеры", callback_data="group_Рокеры")
-        )
-        markup.add(
-            telebot.types.InlineKeyboardButton("Меломаны", callback_data="group_Меломаны"),
-            telebot.types.InlineKeyboardButton("Клубмены", callback_data="group_Клубмены")
-        )
-        bot.send_message(message.chat.id, "Выбери группировку:", reply_markup=markup)
     
     # ---------- ДОНАТ ----------
     elif text == "Донат" or text == "💰 Донат":
