@@ -3,7 +3,6 @@ import time
 import random
 import sqlite3
 import os
-import bands
 
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
@@ -29,10 +28,7 @@ def init_db():
             level INTEGER DEFAULT 1,
             exp INTEGER DEFAULT 0,
             boost_end INTEGER DEFAULT 0,
-            vip_end INTEGER DEFAULT 0,
-            band_id INTEGER DEFAULT 0,
-            band_role TEXT DEFAULT 'member',
-            leave_band_time INTEGER DEFAULT 0
+            vip_end INTEGER DEFAULT 0
         )
     ''')
     conn.execute('''
@@ -42,17 +38,6 @@ def init_db():
             level INTEGER DEFAULT 0,
             owned INTEGER DEFAULT 0,
             PRIMARY KEY (user_id, business_id)
-        )
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS bands (
-            band_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            leader_id INTEGER,
-            deputy_id INTEGER DEFAULT 0,
-            members TEXT DEFAULT '',
-            slots INTEGER DEFAULT 5,
-            fund INTEGER DEFAULT 0
         )
     ''')
     conn.commit()
@@ -146,8 +131,8 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("🎤 Квартирник", "👤 Профиль")
     markup.row("🏢 Бизнесы", "📊 Мои бизнесы")
-    markup.row("🎵 Группировка", "🏷️ Лейбл")
-    markup.row("💰 Донат", "📖 Помощь")
+    markup.row("🎵 Группировка", "💰 Донат")
+    markup.row("📖 Помощь")
     return markup
 
 @bot.message_handler(commands=['start'])
@@ -178,172 +163,6 @@ def set_group(call):
     bot.edit_message_text("Ты выбрал группировку: " + group_name, chat_id=call.message.chat.id, message_id=call.message.message_id)
     bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
     bot.answer_callback_query(call.id)
-
-@bot.message_handler(func=lambda message: message.text in ["Лейбл", "🏷️ Лейбл"])
-def band_menu(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    
-    markup = telebot.types.InlineKeyboardMarkup()
-    if user["band_id"] == 0:
-        markup.add(telebot.types.InlineKeyboardButton("Создать лейбл", callback_data="band_create"))
-        markup.add(telebot.types.InlineKeyboardButton("Найти лейбл", callback_data="band_find"))
-        bot.send_message(message.chat.id, "Ты не состоишь в лейбле. Выбери действие:", reply_markup=markup)
-    else:
-        band = bands.get_band(user["band_id"])
-        if not band:
-            bot.send_message(message.chat.id, "Лейбл не найден!")
-            return
-        members = bands.get_band_members(user["band_id"])
-        msg = "Лейбл: " + band["name"] + "\n"
-        msg = msg + "Участников: " + str(len(members)) + "/" + str(band["slots"]) + "\n"
-        msg = msg + "Фонд: " + str(band["fund"]) + " монет\n"
-        msg = msg + "Твоя роль: " + user["band_role"] + "\n"
-        
-        markup.add(telebot.types.InlineKeyboardButton("Участники", callback_data="band_members"))
-        if user["band_role"] == "leader":
-            markup.add(telebot.types.InlineKeyboardButton("Управление", callback_data="band_manage"))
-        markup.add(telebot.types.InlineKeyboardButton("Выйти из лейбла", callback_data="band_leave"))
-        bot.send_message(message.chat.id, msg, reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_create")
-def band_create(call):
-    bot.send_message(call.message.chat.id, "Введи название лейбла (от 3 до 20 символов, стоимость 75000 монет)")
-    bot.register_next_step_handler(call.message, band_create_name)
-    bot.answer_callback_query(call.id)
-
-def band_create_name(message):
-    user_id = message.chat.id
-    name = message.text.strip()
-    user = get_user(user_id)
-    
-    if len(name) < 3 or len(name) > 20:
-        bot.send_message(message.chat.id, "Название должно быть от 3 до 20 символов!")
-        return
-    
-    if bands.get_band_by_name(name):
-        bot.send_message(message.chat.id, "Лейбл с таким названием уже существует!")
-        return
-    
-    if user["money"] < 75000:
-        bot.send_message(message.chat.id, "Не хватает монет! Нужно 75 000, у тебя " + str(user["money"]))
-        return
-    
-    update_money(user_id, -75000)
-    band_id = bands.create_band(user_id, name)
-    if band_id:
-        bot.send_message(message.chat.id, "Лейбл " + name + " создан! Ты стал лидером.")
-    else:
-        bot.send_message(message.chat.id, "Ошибка при создании лейбла!")
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_find")
-def band_find(call):
-    bot.send_message(call.message.chat.id, "Введи название лейбла для поиска")
-    bot.register_next_step_handler(call.message, band_find_name)
-    bot.answer_callback_query(call.id)
-
-def band_find_name(message):
-    name = message.text.strip()
-    band = bands.get_band_by_name(name)
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
-        return
-    
-    members = bands.get_band_members(band["band_id"])
-    msg = "Лейбл: " + band["name"] + "\n"
-    msg = msg + "Участников: " + str(len(members)) + "/" + str(band["slots"]) + "\n"
-    msg = msg + "Фонд: " + str(band["fund"]) + " монет\n"
-    
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("Вступить", callback_data="band_join_" + str(band["band_id"])))
-    bot.send_message(message.chat.id, msg, reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("band_join_"))
-def band_join(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    band_id = int(call.data.split("_")[2])
-    band = bands.get_band(band_id)
-    
-    if user["band_id"] != 0:
-        bot.answer_callback_query(call.id, "Ты уже в лейбле!")
-        return
-    
-    if user["leave_band_time"] > time.time():
-        bot.answer_callback_query(call.id, "Ты недавно вышел из лейбла! Подожди 24 часа.")
-        return
-    
-    members = bands.get_band_members(band_id)
-    if len(members) >= band["slots"]:
-        bot.answer_callback_query(call.id, "Лейбл полон!")
-        return
-    
-    bands.add_member(band_id, user_id)
-    bot.answer_callback_query(call.id, "Ты вступил в лейбл!")
-    bot.edit_message_text("Ты вступил в лейбл " + band["name"], chat_id=call.message.chat.id, message_id=call.message.message_id)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_leave")
-def band_leave(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    
-    if user["band_role"] == "leader":
-        members = bands.get_band_members(user["band_id"])
-        if len(members) > 1:
-            bot.answer_callback_query(call.id, "Ты лидер! Передай лидерство или распусти лейбл!")
-            return
-    
-    bands.remove_member(user["band_id"], user_id)
-    conn = get_db()
-    conn.execute("UPDATE users SET leave_band_time = ? WHERE user_id = ?", (int(time.time()) + 86400, user_id))
-    conn.commit()
-    conn.close()
-    bot.answer_callback_query(call.id, "Ты вышел из лейбла!")
-    bot.edit_message_text("Ты вышел из лейбла. Вступить в другой можно через 24 часа.", chat_id=call.message.chat.id, message_id=call.message.message_id)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_members")
-def band_members(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    members = bands.get_band_members(user["band_id"])
-    
-    msg = "Участники лейбла:\n"
-    for m in members:
-        member = get_user(int(m))
-        if member:
-            role = member["band_role"]
-            msg = msg + member["username"] + " (" + role + ")\n"
-    bot.edit_message_text(msg, chat_id=call.message.chat.id, message_id=call.message.message_id)
-    bot.answer_callback_query(call.id)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_manage")
-def band_manage(call):
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("Расширить лейбл (+5 слотов, 50к)", callback_data="band_expand"))
-    bot.edit_message_text("Управление лейблом", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
-    bot.answer_callback_query(call.id)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_expand")
-def band_expand(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    band = bands.get_band(user["band_id"])
-    
-    if user["money"] < 50000:
-        bot.answer_callback_query(call.id, "Нужно 50 000 монет!")
-        return
-    
-    if band["slots"] >= 50:
-        bot.answer_callback_query(call.id, "Лейбл уже максимального размера (50)!")
-        return
-    
-    update_money(user_id, -50000)
-    conn = get_db()
-    conn.execute("UPDATE bands SET slots = slots + 5 WHERE band_id = ?", (band["band_id"],))
-    conn.commit()
-    conn.close()
-    bot.answer_callback_query(call.id, "Лейбл расширен на 5 слотов!")
-    bot.edit_message_text("Лейбл расширен на 5 слотов!", chat_id=call.message.chat.id, message_id=call.message.message_id)
 
 @bot.message_handler(func=lambda message: True)
 def handle_text(message):
@@ -389,15 +208,9 @@ def handle_text(message):
         group = user["group_name"] or "не выбрана"
         boost_status = "Активен" if user["boost_end"] > time.time() else "Не активен"
         vip_status = "Активен" if user["vip_end"] > time.time() else "Не активен"
-        band_name = "Нет"
-        if user["band_id"] != 0:
-            band = bands.get_band(user["band_id"])
-            if band:
-                band_name = band["name"]
         
         msg = "Твой профиль\n"
         msg = msg + "Группировка: " + group + "\n"
-        msg = msg + "Лейбл: " + band_name + "\n"
         msg = msg + "Монет: " + str(user["money"]) + "\n"
         msg = msg + "Кэш: " + str(user["cash"]) + "\n"
         msg = msg + "Уровень: " + str(user["level"]) + "\n"
@@ -459,7 +272,6 @@ def handle_text(message):
         msg = msg + "Бизнесы - управление бизнесами\n"
         msg = msg + "Мои бизнесы - твои бизнесы\n"
         msg = msg + "Группировка - выбрать группировку\n"
-        msg = msg + "Лейбл - управление лейблом\n"
         msg = msg + "Донат - покупка Кэш"
         bot.send_message(message.chat.id, msg)
     
@@ -481,4 +293,142 @@ def handle_callbacks(call):
         conn.commit()
         conn.close()
         bot.edit_message_text("Буст x2 активирован на 1 час!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
     
+    if call.data == "buy_vip":
+        if user["cash"] < 20:
+            bot.answer_callback_query(call.id, "Не хватает Кэш")
+            return
+        update_cash(user_id, -20)
+        conn = get_db()
+        conn.execute("UPDATE users SET vip_end = ? WHERE user_id = ?", (int(time.time()) + 86400, user_id))
+        conn.commit()
+        conn.close()
+        bot.edit_message_text("VIP активирован на 1 день!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data == "donate_case":
+        if user["cash"] < 10:
+            bot.answer_callback_query(call.id, "Не хватает Кэш")
+            return
+        update_cash(user_id, -10)
+        prizes = [
+            (random.randint(50000, 200000), "монет"),
+            (random.randint(500000, 3000000), "монет"),
+            ("Буст x2", "буст"),
+            ("VIP (1 день)", "VIP")
+        ]
+        prize = random.choice(prizes)
+        if prize[1] == "монет":
+            update_money(user_id, prize[0])
+        elif prize[1] == "буст":
+            conn = get_db()
+            conn.execute("UPDATE users SET boost_end = ? WHERE user_id = ?", (int(time.time()) + 3600, user_id))
+            conn.commit()
+            conn.close()
+        elif prize[1] == "VIP":
+            conn = get_db()
+            conn.execute("UPDATE users SET vip_end = ? WHERE user_id = ?", (int(time.time()) + 86400, user_id))
+            conn.commit()
+            conn.close()
+        bot.edit_message_text("Ты получил: " + str(prize[0]) + " " + prize[1], chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data.startswith("buy_") and call.data not in ["buy_boost", "buy_vip", "donate_case", "buy_biz"]:
+        amount = int(call.data.split("_")[1])
+        prices = {10: 5, 50: 20, 100: 35, 500: 150}
+        if amount in prices:
+            price = prices[amount]
+            bot.send_invoice(
+                call.message.chat.id,
+                title="Кэш x" + str(amount),
+                description="Покупка " + str(amount) + " Кэш за " + str(price) + " ★",
+                invoice_payload="cash_" + str(amount),
+                provider_token="",
+                currency="XTR",
+                prices=[telebot.types.LabeledPrice(label=str(amount) + " Кэш", amount=price * 100)]
+            )
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data == "buy_biz":
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        for b in BUSINESSES:
+            owned = get_business_level(user_id, b["id"]) > 0
+            status = "✅" if owned else "❌"
+            markup.add(telebot.types.InlineKeyboardButton(str(b["id"]) + ". " + b["name"] + " " + status, callback_data="b_" + str(b["id"])))
+        bot.edit_message_text("Магазин бизнесов", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data.startswith("b_"):
+        business_id = int(call.data.split("_")[1])
+        if get_business_level(user_id, business_id) > 0:
+            bot.answer_callback_query(call.id, "У тебя уже есть этот бизнес")
+            return
+        b = BUSINESSES[business_id - 1]
+        if user["money"] < b["price"]:
+            bot.answer_callback_query(call.id, "Нужно " + str(b["price"]) + " монет")
+            return
+        update_money(user_id, -b["price"])
+        buy_business(user_id, business_id)
+        bot.edit_message_text("Ты купил " + b["name"] + "!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data == "upgrade_biz":
+        businesses = get_user_businesses(user_id)
+        if not businesses:
+            bot.edit_message_text("У тебя нет бизнесов для улучшения", chat_id=call.message.chat.id, message_id=call.message.message_id)
+            bot.answer_callback_query(call.id)
+            return
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        for b in businesses:
+            biz = BUSINESSES[b["business_id"] - 1]
+            markup.add(telebot.types.InlineKeyboardButton(biz["name"] + " (ур." + str(b["level"]) + ")", callback_data="up_" + str(b["business_id"])))
+        bot.edit_message_text("Улучшение бизнесов", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+        bot.answer_callback_query(call.id)
+        return
+    
+    if call.data.startswith("up_"):
+        business_id = int(call.data.split("_")[1])
+        b = BUSINESSES[business_id - 1]
+        level = get_business_level(user_id, business_id)
+        if level >= 10:
+            bot.answer_callback_query(call.id, "Бизнес уже максимального уровня!")
+            return
+        cost = int(b["price"] * 0.1)
+        if user["money"] < cost:
+            bot.answer_callback_query(call.id, "Нужно " + str(cost) + " монет")
+            return
+        update_money(user_id, -cost)
+        upgrade_business(user_id, business_id)
+        new_level = get_business_level(user_id, business_id)
+        bot.edit_message_text(b["name"] + " улучшен до " + str(new_level) + " уровня!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def pre_checkout(pre_checkout_query):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+@bot.message_handler(content_types=['successful_payment'])
+def successful_payment(message):
+    user_id = message.chat.id
+    payload = message.successful_payment.invoice_payload
+    if payload.startswith("cash_"):
+        amount = int(payload.split("_")[1])
+        update_cash(user_id, amount)
+        bot.send_message(user_id, "Ты получил " + str(amount) + " Кэш!")
+
+init_db()
+print("Бот запущен!")
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print("Ошибка: " + str(e))
+        time.sleep(5)
