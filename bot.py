@@ -174,6 +174,7 @@ def handle_text(message):
         bot.send_message(message.chat.id, "Сначала напиши /start")
         return
     
+    # ---------- КВАРТИРНИК ----------
     if text == "Квартирник" or text == "🎤 Квартирник":
         if not user["group_name"]:
             bot.send_message(message.chat.id, "Сначала выбери группировку через /start")
@@ -204,6 +205,7 @@ def handle_text(message):
         msg = msg + "\nОпыт: +" + str(exp_gain) + "\nУровень: " + str(user["level"])
         bot.send_message(message.chat.id, msg)
     
+    # ---------- ПРОФИЛЬ ----------
     elif text == "Профиль" or text == "👤 Профиль":
         group = user["group_name"] or "не выбрана"
         boost_status = "Активен" if user["boost_end"] > time.time() else "Не активен"
@@ -219,12 +221,14 @@ def handle_text(message):
         msg = msg + "VIP: " + vip_status
         bot.send_message(message.chat.id, msg)
     
+    # ---------- БИЗНЕСЫ ----------
     elif text == "Бизнесы" or text == "🏢 Бизнесы" or text == "Бизнес":
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton("Купить бизнес", callback_data="buy_biz"))
         markup.add(telebot.types.InlineKeyboardButton("Улучшить бизнес", callback_data="upgrade_biz"))
         bot.send_message(message.chat.id, "Управление бизнесами", reply_markup=markup)
     
+    # ---------- МОИ БИЗНЕСЫ ----------
     elif text == "Мои бизнесы" or text == "📊 Мои бизнесы":
         businesses = get_user_businesses(user_id)
         if not businesses:
@@ -237,6 +241,7 @@ def handle_text(message):
             msg = msg + biz["name"] + " (ур." + str(b["level"]) + ") — " + str(int(income)) + " монет/час\n"
         bot.send_message(message.chat.id, msg)
     
+    # ---------- ГРУППИРОВКА ----------
     elif text == "Группировка" or text == "🎵 Группировка":
         if user["group_name"]:
             bot.send_message(message.chat.id, "Твоя группировка: " + user["group_name"])
@@ -252,6 +257,7 @@ def handle_text(message):
         )
         bot.send_message(message.chat.id, "Выбери группировку:", reply_markup=markup)
     
+    # ---------- ДОНАТ ----------
     elif text == "Донат" or text == "💰 Донат":
         markup = telebot.types.InlineKeyboardMarkup(row_width=2)
         markup.add(
@@ -265,6 +271,7 @@ def handle_text(message):
         )
         bot.send_message(message.chat.id, "Донат", reply_markup=markup)
     
+    # ---------- ПОМОЩЬ ----------
     elif text == "Помощь" or text == "📖 Помощь":
         msg = "Команды MusicWar:\n"
         msg = msg + "Квартирник - заработать монеты\n"
