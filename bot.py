@@ -176,7 +176,6 @@ def set_group(call):
     bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
     bot.answer_callback_query(call.id)
 
-# ==================== ЛЕЙБЛЫ (ОБРАБОТЧИКИ) ====================
 @bot.message_handler(func=lambda message: message.text in ["Лейбл", "🏷️ Лейбл"])
 def band_menu(message):
     user_id = message.chat.id
@@ -343,7 +342,6 @@ def band_expand(call):
     bot.answer_callback_query(call.id, "Лейбл расширен на 5 слотов!")
     bot.edit_message_text("Лейбл расширен на 5 слотов!", chat_id=call.message.chat.id, message_id=call.message.message_id)
 
-# ==================== ОСТАЛЬНЫЕ КОМАНДЫ ====================
 @bot.message_handler(func=lambda message: True)
 def handle_text(message):
     user_id = message.chat.id
@@ -480,3 +478,6 @@ def handle_callbacks(call):
         conn.commit()
         conn.close()
         bot.edit_message_text("Буст x2 активирован на 1 час!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+    
