@@ -479,4 +479,4 @@ def handle_callbacks(call):
         conn.execute("UPDATE users SET boost_end = ? WHERE user_id = ?", (int(time.time()) + 3600, user_id))
         conn.commit()
         conn.close()
-        bot.edit_message_text("Буст x2 активирован на 1 час!", c
+        bot.edit_message_text("Буст x2 активирован на 1 час!", chat_id=call.message.chat.id, message_id=call.message.message_id)
