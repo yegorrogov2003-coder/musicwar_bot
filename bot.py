@@ -35,6 +35,16 @@ def init_db():
             PRIMARY KEY (user_id, business_id)
         )
     ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS bands (
+            band_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            leader_id INTEGER,
+            members TEXT DEFAULT '',
+            slots INTEGER DEFAULT 5,
+            fund INTEGER DEFAULT 0
+        )
+    ''')
     conn.commit()
     conn.close()
     print("✅ База данных создана!")
