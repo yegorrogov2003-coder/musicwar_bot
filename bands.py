@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_PATH = "/home/musicwar/musicwar.db"
+DB_PATH = "musicwar.db"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
