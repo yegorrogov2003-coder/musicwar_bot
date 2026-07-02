@@ -24,7 +24,7 @@ def init_db():
             money INTEGER DEFAULT 0,
             xp INTEGER DEFAULT 0,
             level INTEGER DEFAULT 1,
-            band_id INTEGER DEFAULT 0
+            gang_id INTEGER DEFAULT 0
         )
     ''')
     conn.execute('''
@@ -37,8 +37,8 @@ def init_db():
         )
     ''')
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS bands (
-            band_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS gangs (
+            gang_id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE,
             leader_id INTEGER,
             members TEXT DEFAULT ''
@@ -46,11 +46,11 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("✅ База данных создана!")
+    print("База данных создана!")
 
 def register_user(user_id, username):
     conn = get_db()
-    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level, band_id) VALUES (?, ?, 1000, 0, 1, 0)", (user_id, username))
+    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level, gang_id) VALUES (?, ?, 1000, 0, 1, 0)", (user_id, username))
     conn.commit()
     conn.close()
 
@@ -120,85 +120,85 @@ def get_rank(level):
     elif level <= 45: return "Бриллиантовый"
     else: return "Music Legend"
 
-# ===== ФУНКЦИИ ЛЕЙБЛОВ =====
+# ===== ФУНКЦИИ БАНД =====
 
-def create_band(leader_id, name):
+def create_gang(leader_id, name):
     conn = get_db()
     try:
         cursor = conn.execute(
-            "INSERT INTO bands (name, leader_id, members) VALUES (?, ?, ?)",
+            "INSERT INTO gangs (name, leader_id, members) VALUES (?, ?, ?)",
             (name, leader_id, str(leader_id))
         )
-        band_id = cursor.lastrowid
+        gang_id = cursor.lastrowid
         conn.execute(
-            "UPDATE users SET band_id = ? WHERE user_id = ?",
-            (band_id, leader_id)
+            "UPDATE users SET gang_id = ? WHERE user_id = ?",
+            (gang_id, leader_id)
         )
         conn.commit()
-        return band_id
+        return gang_id
     except Exception as e:
-        print(f"Ошибка create_band: {e}")
+        print(f"Ошибка create_gang: {e}")
         return None
     finally:
         conn.close()
 
-def get_band(band_id):
+def get_gang(gang_id):
     conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    gang = conn.execute("SELECT * FROM gangs WHERE gang_id = ?", (gang_id,)).fetchone()
     conn.close()
-    return band
+    return gang
 
-def get_band_by_name(name):
+def get_gang_by_name(name):
     conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
+    gang = conn.execute("SELECT * FROM gangs WHERE name = ?", (name,)).fetchone()
     conn.close()
-    return band
+    return gang
 
-def get_band_members(band_id):
+def get_gang_members(gang_id):
     conn = get_db()
-    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    gang = conn.execute("SELECT members FROM gangs WHERE gang_id = ?", (gang_id,)).fetchone()
     conn.close()
-    if band and band["members"]:
-        return [int(m) for m in band["members"].split(",") if m]
+    if gang and gang["members"]:
+        return [int(m) for m in gang["members"].split(",") if m]
     return []
 
-def get_band_members_count(band_id):
-    return len(get_band_members(band_id))
+def get_gang_members_count(gang_id):
+    return len(get_gang_members(gang_id))
 
-def add_member(band_id, user_id):
+def add_member(gang_id, user_id):
     conn = get_db()
-    members = get_band_members(band_id)
+    members = get_gang_members(gang_id)
     if user_id not in members:
         members.append(user_id)
         members_str = ",".join(str(m) for m in members)
         conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
+            "UPDATE gangs SET members = ? WHERE gang_id = ?",
+            (members_str, gang_id)
         )
         conn.execute(
-            "UPDATE users SET band_id = ? WHERE user_id = ?",
-            (band_id, user_id)
+            "UPDATE users SET gang_id = ? WHERE user_id = ?",
+            (gang_id, user_id)
         )
         conn.commit()
     conn.close()
 
-def remove_member(band_id, user_id):
+def remove_member(gang_id, user_id):
     conn = get_db()
-    members = get_band_members(band_id)
+    members = get_gang_members(gang_id)
     if user_id in members:
         members.remove(user_id)
         members_str = ",".join(str(m) for m in members) if members else ""
         conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
+            "UPDATE gangs SET members = ? WHERE gang_id = ?",
+            (members_str, gang_id)
         )
         conn.execute(
-            "UPDATE users SET band_id = 0 WHERE user_id = ?",
+            "UPDATE users SET gang_id = 0 WHERE user_id = ?",
             (user_id,)
         )
         conn.commit()
         if not members:
-            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+            conn.execute("DELETE FROM gangs WHERE gang_id = ?", (gang_id,))
             conn.commit()
     conn.close()
     return True
@@ -222,7 +222,7 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("Квартирник", "Профиль")
     markup.row("Бизнесы", "Мои бизнесы")
-    markup.row("Лейбл", "Донат")
+    markup.row("Банда", "Донат")
     markup.row("Помощь", "О боте")
     return markup
 
@@ -292,11 +292,11 @@ def profile(message):
         return
 
     group = user["group_name"] or "не выбрана"
-    band_name = "Нет"
-    if user["band_id"] != 0:
-        band = get_band(user["band_id"])
-        if band:
-            band_name = band["name"]
+    gang_name = "Нет"
+    if user["gang_id"] != 0:
+        gang = get_gang(user["gang_id"])
+        if gang:
+            gang_name = gang["name"]
 
     businesses = get_user_businesses(user_id)
     total_income = 0
@@ -311,7 +311,7 @@ def profile(message):
     rank = get_rank(user["level"])
     xp_for_next = user["level"] * 100
 
-    msg = f"Профиль:\nИгрок: {user['username']}\nГруппировка: {group}\nЛейбл: {band_name}\nУровень: {user['level']} ({rank})\nОпыт: {user['xp']}/{xp_for_next} XP\nМонет: {user['money']}\nДоход: {total_income} монет/час"
+    msg = f"Профиль:\nИгрок: {user['username']}\nГруппировка: {group}\nБанда: {gang_name}\nУровень: {user['level']} ({rank})\nОпыт: {user['xp']}/{xp_for_next} XP\nМонет: {user['money']}\nДоход: {total_income} монет/час"
     if level_bonus > 0:
         msg += f"\nБонус уровня: +{level_bonus}%"
     bot.send_message(message.chat.id, msg)
@@ -392,48 +392,48 @@ def my_businesses(message):
         response += f"\nБонус уровня: +{level_bonus}%"
     bot.send_message(message.chat.id, response)
 
-@bot.message_handler(func=lambda message: message.text == "Лейбл")
-def band_menu_button(message):
-    band_menu(message)
+@bot.message_handler(func=lambda message: message.text == "Банда")
+def gang_menu_button(message):
+    gang_menu(message)
 
-@bot.message_handler(commands=['band'])
-def band_menu(message):
+@bot.message_handler(commands=['gang'])
+def gang_menu(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши /start")
         return
 
-    if user["band_id"] == 0:
+    if user["gang_id"] == 0:
         bot.send_message(message.chat.id,
-            "Ты не в лейбле!\n\n"
+            "Ты не в банде!\n\n"
             "Команды:\n"
-            "/band_create [название] — создать лейбл (75,000 монет)\n"
-            "/band_join [название] — вступить в лейбл")
+            "/gang_create [название] — создать банду (75,000 монет)\n"
+            "/gang_join [название] — вступить в банду")
     else:
-        band = get_band(user["band_id"])
-        if band:
-            members = get_band_members(user["band_id"])
-            msg = f"Лейбл: {band['name']}\nУчастников: {len(members)}\n\nКоманды:\n/band_leave — выйти\n/band_members — список участников"
+        gang = get_gang(user["gang_id"])
+        if gang:
+            members = get_gang_members(user["gang_id"])
+            msg = f"Банда: {gang['name']}\nУчастников: {len(members)}\n\nКоманды:\n/gang_leave — выйти\n/gang_members — список участников"
             bot.send_message(message.chat.id, msg)
         else:
-            bot.send_message(message.chat.id, "Лейбл не найден!")
+            bot.send_message(message.chat.id, "Банда не найдена!")
 
-@bot.message_handler(commands=['band_create'])
-def band_create_command(message):
+@bot.message_handler(commands=['gang_create'])
+def gang_create_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши /start")
         return
 
-    if user["band_id"] != 0:
-        bot.send_message(message.chat.id, "Ты уже в лейбле!")
+    if user["gang_id"] != 0:
+        bot.send_message(message.chat.id, "Ты уже в банде!")
         return
 
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        bot.send_message(message.chat.id, "Формат: /band_create [название]")
+        bot.send_message(message.chat.id, "Формат: /gang_create [название]")
         return
 
     name = args[1].strip()
@@ -441,8 +441,8 @@ def band_create_command(message):
         bot.send_message(message.chat.id, "Название должно быть от 3 до 20 символов!")
         return
 
-    if get_band_by_name(name):
-        bot.send_message(message.chat.id, "Лейбл с таким названием уже существует!")
+    if get_gang_by_name(name):
+        bot.send_message(message.chat.id, "Банда с таким названием уже существует!")
         return
 
     if user["money"] < 75000:
@@ -450,83 +450,83 @@ def band_create_command(message):
         return
 
     update_money(user_id, -75000)
-    band_id = create_band(user_id, name)
-    if band_id:
+    gang_id = create_gang(user_id, name)
+    if gang_id:
         add_xp(user_id, 100)
-        bot.send_message(message.chat.id, f"Лейбл {name} создан! +100 XP")
+        bot.send_message(message.chat.id, f"Банда {name} создана! +100 XP")
     else:
-        bot.send_message(message.chat.id, "Ошибка при создании лейбла!")
+        bot.send_message(message.chat.id, "Ошибка при создании банды!")
 
-@bot.message_handler(commands=['band_join'])
-def band_join_command(message):
+@bot.message_handler(commands=['gang_join'])
+def gang_join_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши /start")
         return
 
-    if user["band_id"] != 0:
-        bot.send_message(message.chat.id, "Ты уже в лейбле!")
+    if user["gang_id"] != 0:
+        bot.send_message(message.chat.id, "Ты уже в банде!")
         return
 
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        bot.send_message(message.chat.id, "Формат: /band_join [название]")
+        bot.send_message(message.chat.id, "Формат: /gang_join [название]")
         return
 
     name = args[1].strip()
-    band = get_band_by_name(name)
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
+    gang = get_gang_by_name(name)
+    if not gang:
+        bot.send_message(message.chat.id, "Банда не найдена!")
         return
 
-    add_member(band["band_id"], user_id)
+    add_member(gang["gang_id"], user_id)
     add_xp(user_id, 25)
-    bot.send_message(message.chat.id, f"Ты вступил в лейбл {name}! +25 XP")
+    bot.send_message(message.chat.id, f"Ты вступил в банду {name}! +25 XP")
 
-@bot.message_handler(commands=['band_leave'])
-def band_leave_command(message):
+@bot.message_handler(commands=['gang_leave'])
+def gang_leave_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши /start")
         return
 
-    if user["band_id"] == 0:
-        bot.send_message(message.chat.id, "Ты не в лейбле!")
+    if user["gang_id"] == 0:
+        bot.send_message(message.chat.id, "Ты не в банде!")
         return
 
-    band = get_band(user["band_id"])
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
+    gang = get_gang(user["gang_id"])
+    if not gang:
+        bot.send_message(message.chat.id, "Банда не найдена!")
         return
 
-    remove_member(user["band_id"], user_id)
-    bot.send_message(message.chat.id, f"Ты вышел из лейбла {band['name']}!")
+    remove_member(user["gang_id"], user_id)
+    bot.send_message(message.chat.id, f"Ты вышел из банды {gang['name']}!")
 
-@bot.message_handler(commands=['band_members'])
-def band_members_command(message):
+@bot.message_handler(commands=['gang_members'])
+def gang_members_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши /start")
         return
 
-    if user["band_id"] == 0:
-        bot.send_message(message.chat.id, "Ты не в лейбле!")
+    if user["gang_id"] == 0:
+        bot.send_message(message.chat.id, "Ты не в банде!")
         return
 
-    band = get_band(user["band_id"])
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
+    gang = get_gang(user["gang_id"])
+    if not gang:
+        bot.send_message(message.chat.id, "Банда не найдена!")
         return
 
-    members = get_band_members(user["band_id"])
+    members = get_gang_members(user["gang_id"])
     if not members:
-        bot.send_message(message.chat.id, "В лейбле пока нет участников.")
+        bot.send_message(message.chat.id, "В банде пока нет участников.")
         return
 
-    msg = f"Участники лейбла {band['name']}:\n"
+    msg = f"Участники банды {gang['name']}:\n"
     for m in members:
         member = get_user(int(m))
         if member:
@@ -539,7 +539,7 @@ def donate(message):
 
 @bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_command(message):
-    bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nЛейбл — создать/вступить в лейбл\nДонат — покупка Кэш")
+    bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nБанда — создать/вступить в банду\nДонат — покупка Кэш")
 
 @bot.message_handler(func=lambda message: message.text == "О боте")
 def about(message):
@@ -555,7 +555,7 @@ if __name__ == "__main__":
     print("MusicWar Bot готов к работе!")
     print("Загружено 12 бизнесов")
     print("Система уровней: 50 уровней")
-    print("Команды лейблов загружены!")
+    print("Команды банд загружены!")
 
     while True:
         try:
