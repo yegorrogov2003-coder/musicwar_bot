@@ -23,7 +23,8 @@ def init_db():
             group_name TEXT DEFAULT '',
             money INTEGER DEFAULT 0,
             xp INTEGER DEFAULT 0,
-            level INTEGER DEFAULT 1
+            level INTEGER DEFAULT 1,
+            band_id INTEGER DEFAULT 0
         )
     ''')
     conn.execute('''
@@ -35,13 +36,21 @@ def init_db():
             PRIMARY KEY (user_id, business_id)
         )
     ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS bands (
+            band_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            leader_id INTEGER,
+            members TEXT DEFAULT ''
+        )
+    ''')
     conn.commit()
     conn.close()
     print("✅ База данных создана!")
 
 def register_user(user_id, username):
     conn = get_db()
-    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level) VALUES (?, ?, 1000, 0, 1)", (user_id, username))
+    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level, band_id) VALUES (?, ?, 1000, 0, 1, 0)", (user_id, username))
     conn.commit()
     conn.close()
 
@@ -222,6 +231,13 @@ def profile(message):
         return
 
     group = user["group_name"] or "не выбрана"
+    
+    band_name = "Нет"
+    if user["band_id"] != 0:
+        band = get_band(user["band_id"])
+        if band:
+            band_name = band["name"]
+
     businesses = get_user_businesses(user_id)
     total_income = 0
     for b in businesses:
@@ -239,7 +255,8 @@ def profile(message):
     msg += "   🎵 MUSICWAR 🎵\n"
     msg += "⚔️═══════════════⚔️\n\n"
     msg += f"👤 Игрок: {user['username']}\n"
-    msg += f"🎵 Группировка: {group}\n\n"
+    msg += f"🎵 Группировка: {group}\n"
+    msg += f"🏷️ Лейбл: {band_name}\n\n"
     msg += f"⭐ Уровень: {user['level']} ({rank})\n"
     msg += f"📈 Опыт: {user['xp']}/{xp_for_next} XP\n"
     msg += f"💰 Монет: {user['money']:,}\n"
@@ -379,12 +396,96 @@ def about(message):
 def unknown(message):
     bot.send_message(message.chat.id, "🤷 Неизвестная команда.\nИспользуй кнопки внизу.")
 
+# ===== ФУНКЦИИ ЛЕЙБЛОВ (БЕЗ КНОПОК) =====
+
+def create_band(leader_id, name):
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO bands (name, leader_id, members) VALUES (?, ?, ?)",
+            (name, leader_id, str(leader_id))
+        )
+        band_id = cursor.lastrowid
+        conn.execute(
+            "UPDATE users SET band_id = ? WHERE user_id = ?",
+            (band_id, leader_id)
+        )
+        conn.commit()
+        return band_id
+    except Exception as e:
+        print(f"Ошибка create_band: {e}")
+        return None
+    finally:
+        conn.close()
+
+def get_band(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_by_name(name):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_members(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    if band and band["members"]:
+        return [int(m) for m in band["members"].split(",") if m]
+    return []
+
+def get_band_members_count(band_id):
+    return len(get_band_members(band_id))
+
+def add_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id not in members:
+        members.append(user_id)
+        members_str = ",".join(str(m) for m in members)
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = ? WHERE user_id = ?",
+            (band_id, user_id)
+        )
+        conn.commit()
+    conn.close()
+
+def remove_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id in members:
+        members.remove(user_id)
+        members_str = ",".join(str(m) for m in members) if members else ""
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = 0 WHERE user_id = ?",
+            (user_id,)
+        )
+        conn.commit()
+        if not members:
+            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+            conn.commit()
+    conn.close()
+    return True
+
 if __name__ == "__main__":
     init_db()
     print("✅ БОТ ЗАПУЩЕН!")
     print("🤖 MusicWar Bot готов к работе!")
     print("📊 Загружено 12 бизнесов")
     print("⭐ Система уровней: 50 уровней")
+    print("🏷️ Функции лейблов загружены (без кнопок)")
 
     while True:
         try:
