@@ -123,7 +123,7 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
-# ===== ЛЕЙБЛЫ (ФУНКЦИИ) =====
+# ===== ЛЕЙБЛЫ =====
 def create_band(leader_id, name):
     conn = get_db()
     try:
@@ -204,7 +204,6 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
-# ===== БИЗНЕСЫ =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -224,7 +223,7 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("🎤 Квартирник", "👤 Профиль")
     markup.row("🏢 Бизнесы", "📊 Мои бизнесы")
-    markup.row("🎵 Группировка", "🏷️ Лейбл")  # ← КНОПКА ДОБАВЛЕНА
+    markup.row("🎵 Группировка", "🏷️ Лейбл")
     markup.row("💰 Донат", "📖 Помощь")
     return markup
 
@@ -317,7 +316,6 @@ def profile(message):
     
     group = user["group_name"] or "не выбрана"
     
-    # Проверяем лейбл
     band_name = "Нет"
     if user["band_id"] != 0:
         band = get_band(user["band_id"])
@@ -439,66 +437,129 @@ def my_businesses(message):
 def group_menu(message):
     start(message)
 
+# ===== ЛЕЙБЛ - МЕНЮ =====
 @bot.message_handler(func=lambda message: message.text in ["🏷️ Лейбл", "Лейбл"])
 def band_menu(message):
-    bot.send_message(message.chat.id, "🏷️ Лейблы скоро появятся!")
-
-@bot.message_handler(func=lambda message: message.text in ["💰 Донат", "Донат"])
-def donate(message):
-    msg = "⚔️═══════════════⚔️\n"
-    msg += "   💰 ДОНАТ\n"
-    msg += "⚔️═══════════════⚔️\n\n"
-    msg += "💎 Кэш — 100 монет (50₽)\n"
-    msg += "💎 Кэш+ — 500 монет (200₽)\n"
-    msg += "💎 VIP — 1000 монет (400₽)\n"
-    msg += "⚔️═══════════════⚔️\n\n"
-    msg += "📌 Для покупки напиши @SupportBot"
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text in ["📖 Помощь", "Помощь"])
-def help_command(message):
-    msg = "⚔️═══════════════⚔️\n"
-    msg += "   📖 ПОМОЩЬ\n"
-    msg += "⚔️═══════════════⚔️\n\n"
-    msg += "🎤 Квартирник — заработать монеты и опыт\n"
-    msg += "👤 Профиль — твоя статистика\n"
-    msg += "🏢 Бизнесы — магазин бизнесов\n"
-    msg += "📊 Мои бизнесы — твои бизнесы\n"
-    msg += "🎵 Группировка — выбрать группировку\n"
-    msg += "🏷️ Лейбл — управление лейблом\n"
-    msg += "💰 Донат — покупка Кэш\n"
-    msg += "⚔️═══════════════⚔️\n\n"
-    msg += "📌 Используй кнопки внизу!"
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text in ["ℹ️ О боте", "О боте"])
-def about(message):
-    msg = "⚔️═══════════════⚔️\n"
-    msg += "   ℹ️ О БОТЕ\n"
-    msg += "⚔️═══════════════⚔️\n\n"
-    msg += "🎵 MusicWar Bot v2.0\n"
-    msg += "⭐ Система уровней: 50\n"
-    msg += "🏢 Бизнесов: 12\n"
-    msg += "🎵 Группировок: 4\n"
-    msg += "⚔️═══════════════⚔️"
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: True)
-def unknown(message):
-    bot.send_message(message.chat.id, "🤷 Неизвестная команда.\nИспользуй кнопки внизу.")
-
-if __name__ == "__main__":
-    init_db()
-    print("✅ БОТ ЗАПУЩЕН!")
-    print("🤖 MusicWar Bot готов к работе!")
-    print("📊 Загружено 12 бизнесов")
-    print("⭐ Система уровней: 50 уровней")
-    print("🏷️ Лейблы добавлены")
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "❌ Напиши /start")
+        return
     
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0)
-        except Exception as e:
-            print(f"❌ Ошибка: {e}")
-            print("🔄 Перезапуск через 5 секунд...")
-            time.sleep(5)
+    markup = telebot.types.InlineKeyboardMarkup()
+    if user["band_id"] == 0:
+        markup.add(telebot.types.InlineKeyboardButton("📝 Создать лейбл", callback_data="band_create"))
+        markup.add(telebot.types.InlineKeyboardButton("🔍 Найти лейбл", callback_data="band_find"))
+        bot.send_message(message.chat.id,
+            "⚔️═══════════════⚔️\n"
+            "   🏷️ ЛЕЙБЛ\n"
+            "⚔️═══════════════⚔️\n\n"
+            "Ты не состоишь в лейбле.\n"
+            "Выбери действие:",
+            reply_markup=markup)
+    else:
+        band = get_band(user["band_id"])
+        if not band:
+            bot.send_message(message.chat.id, "❌ Лейбл не найден!")
+            return
+        members = get_band_members(user["band_id"])
+        msg = "⚔️═══════════════⚔️\n"
+        msg += f"   🏷️ {band['name']}\n"
+        msg += "⚔️═══════════════⚔️\n\n"
+        msg += f"👥 Участников: {len(members)}/{band['slots']}\n"
+        msg += f"💰 Фонд: {band['fund']:,} монет\n"
+        msg += f"🎯 Роль: {user['band_role']}\n"
+        
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("📊 Участники", callback_data="band_members"))
+        if user["band_role"] == "leader":
+            markup.add(telebot.types.InlineKeyboardButton("⚙️ Управление", callback_data="band_manage"))
+        markup.add(telebot.types.InlineKeyboardButton("🚪 Выйти из лейбла", callback_data="band_leave_confirm"))
+        bot.send_message(message.chat.id, msg, reply_markup=markup)
+
+# ===== ЛЕЙБЛ - СОЗДАНИЕ =====
+@bot.callback_query_handler(func=lambda call: call.data == "band_create")
+def band_create(call):
+    bot.send_message(call.message.chat.id,
+        "⚔️═══════════════⚔️\n"
+        "   📝 СОЗДАНИЕ ЛЕЙБЛА\n"
+        "⚔️═══════════════⚔️\n\n"
+        "Введи название лейбла (от 3 до 20 символов)\n"
+        "💰 Стоимость: 75,000 монет")
+    bot.register_next_step_handler(call.message, band_create_name)
+    bot.answer_callback_query(call.id)
+
+def band_create_name(message):
+    user_id = message.chat.id
+    name = message.text.strip()
+    user = get_user(user_id)
+    
+    if len(name) < 3 or len(name) > 20:
+        bot.send_message(message.chat.id, "❌ Название должно быть от 3 до 20 символов!")
+        return
+    
+    if get_band_by_name(name):
+        bot.send_message(message.chat.id, "❌ Лейбл с таким названием уже существует!")
+        return
+    
+    if user["money"] < 75000:
+        bot.send_message(message.chat.id, f"❌ Нужно 75,000 монет! У тебя {user['money']:,}")
+        return
+    
+    update_money(user_id, -75000)
+    band_id = create_band(user_id, name)
+    if band_id:
+        add_xp(user_id, 100)
+        bot.send_message(message.chat.id, f"✅ Лейбл '{name}' создан! +100 XP")
+    else:
+        bot.send_message(message.chat.id, "❌ Ошибка при создании лейбла!")
+
+# ===== ЛЕЙБЛ - ПОИСК =====
+@bot.callback_query_handler(func=lambda call: call.data == "band_find")
+def band_find(call):
+    bot.send_message(call.message.chat.id,
+        "⚔️═══════════════⚔️\n"
+        "   🔍 ПОИСК ЛЕЙБЛА\n"
+        "⚔️═══════════════⚔️\n\n"
+        "Введи название лейбла для поиска:")
+    bot.register_next_step_handler(call.message, band_find_name)
+    bot.answer_callback_query(call.id)
+
+def band_find_name(message):
+    name = message.text.strip()
+    band = get_band_by_name(name)
+    if not band:
+        bot.send_message(message.chat.id, "❌ Лейбл не найден!")
+        return
+    
+    members = get_band_members(band["band_id"])
+    msg = "⚔️═══════════════⚔️\n"
+    msg += f"   🏷️ {band['name']}\n"
+    msg += "⚔️═══════════════⚔️\n\n"
+    msg += f"👥 Участников: {len(members)}/{band['slots']}\n"
+    msg += f"💰 Фонд: {band['fund']:,} монет\n"
+    
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(telebot.types.InlineKeyboardButton("📝 Вступить", callback_data=f"band_join_{band['band_id']}"))
+    bot.send_message(message.chat.id, msg, reply_markup=markup)
+
+# ===== ЛЕЙБЛ - ВСТУПЛЕНИЕ =====
+@bot.callback_query_handler(func=lambda call: call.data.startswith("band_join_"))
+def band_join(call):
+    user_id = call.from_user.id
+    user = get_user(user_id)
+    band_id = int(call.data.split("_")[2])
+    band = get_band(band_id)
+    
+    if user["band_id"] != 0:
+        bot.answer_callback_query(call.id, "❌ Ты уже в лейбле!")
+        return
+    
+    if get_band_members_count(band_id) >= band["slots"]:
+        bot.answer_callback_query(call.id, "❌ Лейбл полон!")
+        return
+    
+    add_member(band_id, user_id)
+    add_xp(user_id, 25)
+    bot.answer_callback_query(call.id, "✅ Ты вступил в лейбл! +25 XP")
+    bot.edit_message_text(f"✅ Ты всту
