@@ -4,8 +4,12 @@ import sqlite3
 import os
 import time
 
+print("=== ШАГ 1: ИМПОРТЫ ЗАГРУЖЕНЫ ===")
+
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
+
+print("=== ШАГ 2: ТОКЕН ЗАГРУЖЕН ===")
 
 DB_PATH = "musicwar.db"
 
@@ -15,6 +19,7 @@ def get_db():
     return conn
 
 def init_db():
+    print("=== ШАГ 3: СОЗДАЮ БАЗУ ДАННЫХ ===")
     conn = get_db()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -37,6 +42,7 @@ def init_db():
             PRIMARY KEY (user_id, business_id)
         )
     ''')
+    print("=== ШАГ 3.5: СОЗДАЮ ТАБЛИЦУ BANDS ===")
     conn.execute('''
         CREATE TABLE IF NOT EXISTS bands (
             band_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +55,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("✅ База данных создана!")
+    print("=== ШАГ 4: БАЗА ДАННЫХ СОЗДАНА ===")
 
 def register_user(user_id, username):
     conn = get_db()
@@ -123,7 +129,9 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
-# ===== ЛЕЙБЛЫ =====
+print("=== ШАГ 5: ФУНКЦИИ ЛЕЙБЛОВ ===")
+
+# ===== ФУНКЦИИ ЛЕЙБЛОВ =====
 def create_band(leader_id, name):
     conn = get_db()
     try:
@@ -138,7 +146,8 @@ def create_band(leader_id, name):
         )
         conn.commit()
         return band_id
-    except:
+    except Exception as e:
+        print(f"Ошибка create_band: {e}")
         return None
     finally:
         conn.close()
@@ -204,7 +213,8 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
-# ===== БИЗНЕСЫ =====
+print("=== ШАГ 6: ФУНКЦИИ ЛЕЙБЛОВ ЗАГРУЖЕНЫ ===")
+
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -228,8 +238,11 @@ def main_menu():
     markup.row("💰 Донат", "📖 Помощь")
     return markup
 
+print("=== ШАГ 7: МЕНЮ ЗАГРУЖЕНО ===")
+
 @bot.message_handler(commands=['start'])
 def start(message):
+    print("=== start() вызван ===")
     user_id = message.chat.id
     username = message.from_user.username or "без_юзернейма"
     register_user(user_id, username)
@@ -261,6 +274,8 @@ def start(message):
             f"🎵 Группировка: {user['group_name']}",
             reply_markup=main_menu())
 
+print("=== ШАГ 8: ОБРАБОТЧИК /start ЗАГРУЖЕН ===")
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("group_"))
 def set_group_callback(call):
     group_name = call.data.split("_")[1]
@@ -275,6 +290,8 @@ def set_group_callback(call):
         "🎵 Используй кнопки внизу:",
         reply_markup=main_menu())
     bot.answer_callback_query(call.id)
+
+print("=== ШАГ 9: ОБРАБОТЧИК ГРУПП ЗАГРУЖЕН ===")
 
 @bot.message_handler(func=lambda message: message.text in ["🎤 Квартирник", "Квартирник"])
 def attack(message):
@@ -307,6 +324,8 @@ def attack(message):
 
     bot.send_message(message.chat.id, msg)
 
+print("=== ШАГ 10: ОБРАБОТЧИК КВАРТИРНИКА ЗАГРУЖЕН ===")
+
 @bot.message_handler(func=lambda message: message.text in ["👤 Профиль", "Профиль"])
 def profile(message):
     user_id = message.chat.id
@@ -316,6 +335,7 @@ def profile(message):
         return
 
     group = user["group_name"] or "не выбрана"
+    
     band_name = "Нет"
     if user["band_id"] != 0:
         band = get_band(user["band_id"])
@@ -350,6 +370,8 @@ def profile(message):
     msg += "\n⚔️═══════════════⚔️"
     bot.send_message(message.chat.id, msg)
 
+print("=== ШАГ 11: ОБРАБОТЧИК ПРОФИЛЯ ЗАГРУЖЕН ===")
+
 @bot.message_handler(func=lambda message: message.text in ["🏢 Бизнесы", "Бизнесы"])
 def show_businesses(message):
     user_id = message.chat.id
@@ -368,6 +390,8 @@ def show_businesses(message):
         response += f"   💰 {b['price']:,} | 📈 {b['income']:,}/ч {status}\n\n"
     response += "📌 Напиши: *Купить бизнес N*"
     bot.send_message(message.chat.id, response)
+
+print("=== ШАГ 12: ОБРАБОТЧИК БИЗНЕСОВ ЗАГРУЖЕН ===")
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
 def buy_business_command(message):
@@ -401,6 +425,8 @@ def buy_business_command(message):
     add_xp(user_id, 50)
     bot.send_message(message.chat.id, f"✅ Ты купил {b['name']}! +50 XP")
 
+print("=== ШАГ 13: ОБРАБОТЧИК ПОКУПКИ ЗАГРУЖЕН ===")
+
 @bot.message_handler(func=lambda message: message.text in ["📊 Мои бизнесы", "Мои бизнесы"])
 def my_businesses(message):
     user_id = message.chat.id
@@ -433,9 +459,13 @@ def my_businesses(message):
         response += f"\n🎯 Бонус уровня: +{level_bonus}%"
     bot.send_message(message.chat.id, response)
 
+print("=== ШАГ 14: ОБРАБОТЧИК МОИХ БИЗНЕСОВ ЗАГРУЖЕН ===")
+
 @bot.message_handler(func=lambda message: message.text in ["🎵 Группировка", "Группировка"])
 def group_menu(message):
     start(message)
+
+print("=== ШАГ 15: ОБРАБОТЧИК ГРУППИРОВКИ ЗАГРУЖЕН ===")
 
 @bot.message_handler(func=lambda message: message.text in ["🏷️ Лейбл", "Лейбл"])
 def band_menu(message):
@@ -476,6 +506,8 @@ def band_menu(message):
         markup.add(telebot.types.InlineKeyboardButton("🚪 Выйти из лейбла", callback_data="band_leave_confirm"))
         bot.send_message(message.chat.id, msg, reply_markup=markup)
 
+print("=== ШАГ 16: ОБРАБОТЧИК ЛЕЙБЛА ЗАГРУЖЕН ===")
+
 @bot.callback_query_handler(func=lambda call: call.data == "band_create")
 def band_create(call):
     bot.send_message(call.message.chat.id,
@@ -512,6 +544,8 @@ def band_create_name(message):
     else:
         bot.send_message(message.chat.id, "❌ Ошибка при создании лейбла!")
 
+print("=== ШАГ 17: ОБРАБОТЧИК СОЗДАНИЯ ЛЕЙБЛА ЗАГРУЖЕН ===")
+
 @bot.callback_query_handler(func=lambda call: call.data == "band_find")
 def band_find(call):
     bot.send_message(call.message.chat.id,
@@ -537,31 +571,4 @@ def band_find_name(message):
     msg += f"💰 Фонд: {band['fund']:,} монет\n"
 
     markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("📝 Вступить", callback_data=f"band_join_{band['band_id']}"))
-    bot.send_message(message.chat.id, msg, reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("band_join_"))
-def band_join(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    band_id = int(call.data.split("_")[2])
-    band = get_band(band_id)
-
-    if user["band_id"] != 0:
-        bot.answer_callback_query(call.id, "❌ Ты уже в лейбле!")
-        return
-
-    if get_band_members_count(band_id) >= band["slots"]:
-        bot.answer_callback_query(call.id, "❌ Лейбл полон!")
-        return
-
-    add_member(band_id, user_id)
-    add_xp(user_id, 25)
-    bot.answer_callback_query(call.id, "✅ Ты вступил в лейбл! +25 XP")
-    bot.edit_message_text(f"✅ Ты вступил в лейбл {band['name']}",
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id)
-
-@bot.callback_query_handler(func=lambda call: call.data == "band_members")
-def band_members(call):
-    user_id = ca
+    markup.add(telebot.types.InlineKeyboardButton("📝 Вступить", callback_data=f"ba
