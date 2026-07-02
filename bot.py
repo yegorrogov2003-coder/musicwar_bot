@@ -120,6 +120,89 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
+# ===== ФУНКЦИИ ЛЕЙБЛОВ =====
+
+def create_band(leader_id, name):
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO bands (name, leader_id, members) VALUES (?, ?, ?)",
+            (name, leader_id, str(leader_id))
+        )
+        band_id = cursor.lastrowid
+        conn.execute(
+            "UPDATE users SET band_id = ? WHERE user_id = ?",
+            (band_id, leader_id)
+        )
+        conn.commit()
+        return band_id
+    except Exception as e:
+        print(f"Ошибка create_band: {e}")
+        return None
+    finally:
+        conn.close()
+
+def get_band(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_by_name(name):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_members(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    if band and band["members"]:
+        return [int(m) for m in band["members"].split(",") if m]
+    return []
+
+def get_band_members_count(band_id):
+    return len(get_band_members(band_id))
+
+def add_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id not in members:
+        members.append(user_id)
+        members_str = ",".join(str(m) for m in members)
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = ? WHERE user_id = ?",
+            (band_id, user_id)
+        )
+        conn.commit()
+    conn.close()
+
+def remove_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id in members:
+        members.remove(user_id)
+        members_str = ",".join(str(m) for m in members) if members else ""
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = 0 WHERE user_id = ?",
+            (user_id,)
+        )
+        conn.commit()
+        if not members:
+            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+            conn.commit()
+    conn.close()
+    return True
+
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -396,96 +479,13 @@ def about(message):
 def unknown(message):
     bot.send_message(message.chat.id, "🤷 Неизвестная команда.\nИспользуй кнопки внизу.")
 
-# ===== ФУНКЦИИ ЛЕЙБЛОВ (БЕЗ КНОПОК) =====
-
-def create_band(leader_id, name):
-    conn = get_db()
-    try:
-        cursor = conn.execute(
-            "INSERT INTO bands (name, leader_id, members) VALUES (?, ?, ?)",
-            (name, leader_id, str(leader_id))
-        )
-        band_id = cursor.lastrowid
-        conn.execute(
-            "UPDATE users SET band_id = ? WHERE user_id = ?",
-            (band_id, leader_id)
-        )
-        conn.commit()
-        return band_id
-    except Exception as e:
-        print(f"Ошибка create_band: {e}")
-        return None
-    finally:
-        conn.close()
-
-def get_band(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    return band
-
-def get_band_by_name(name):
-    conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
-    conn.close()
-    return band
-
-def get_band_members(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    if band and band["members"]:
-        return [int(m) for m in band["members"].split(",") if m]
-    return []
-
-def get_band_members_count(band_id):
-    return len(get_band_members(band_id))
-
-def add_member(band_id, user_id):
-    conn = get_db()
-    members = get_band_members(band_id)
-    if user_id not in members:
-        members.append(user_id)
-        members_str = ",".join(str(m) for m in members)
-        conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
-        )
-        conn.execute(
-            "UPDATE users SET band_id = ? WHERE user_id = ?",
-            (band_id, user_id)
-        )
-        conn.commit()
-    conn.close()
-
-def remove_member(band_id, user_id):
-    conn = get_db()
-    members = get_band_members(band_id)
-    if user_id in members:
-        members.remove(user_id)
-        members_str = ",".join(str(m) for m in members) if members else ""
-        conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
-        )
-        conn.execute(
-            "UPDATE users SET band_id = 0 WHERE user_id = ?",
-            (user_id,)
-        )
-        conn.commit()
-        if not members:
-            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
-            conn.commit()
-    conn.close()
-    return True
-
 if __name__ == "__main__":
     init_db()
     print("✅ БОТ ЗАПУЩЕН!")
     print("🤖 MusicWar Bot готов к работе!")
     print("📊 Загружено 12 бизнесов")
     print("⭐ Система уровней: 50 уровней")
-    print("🏷️ Функции лейблов загружены (без кнопок)")
+    print("🏷️ Функции лейблов загружены (без кнопки)")
 
     while True:
         try:
