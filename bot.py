@@ -3,6 +3,7 @@ import random
 import sqlite3
 import os
 import time
+import bands
 
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
@@ -123,87 +124,6 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
-# ===== ЛЕЙБЛЫ =====
-def create_band(leader_id, name):
-    conn = get_db()
-    try:
-        cursor = conn.execute(
-            "INSERT INTO bands (name, leader_id, members, slots) VALUES (?, ?, ?, 5)",
-            (name, leader_id, str(leader_id))
-        )
-        band_id = cursor.lastrowid
-        conn.execute(
-            "UPDATE users SET band_id = ?, band_role = 'leader' WHERE user_id = ?",
-            (band_id, leader_id)
-        )
-        conn.commit()
-        return band_id
-    except:
-        return None
-    finally:
-        conn.close()
-
-def get_band(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    return band
-
-def get_band_by_name(name):
-    conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
-    conn.close()
-    return band
-
-def get_band_members(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    if band and band["members"]:
-        return [int(m) for m in band["members"].split(",") if m]
-    return []
-
-def get_band_members_count(band_id):
-    return len(get_band_members(band_id))
-
-def add_member(band_id, user_id):
-    conn = get_db()
-    members = get_band_members(band_id)
-    if user_id not in members:
-        members.append(user_id)
-        members_str = ",".join(str(m) for m in members)
-        conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
-        )
-        conn.execute(
-            "UPDATE users SET band_id = ?, band_role = 'member' WHERE user_id = ?",
-            (band_id, user_id)
-        )
-        conn.commit()
-    conn.close()
-
-def remove_member(band_id, user_id):
-    conn = get_db()
-    members = get_band_members(band_id)
-    if user_id in members:
-        members.remove(user_id)
-        members_str = ",".join(str(m) for m in members) if members else ""
-        conn.execute(
-            "UPDATE bands SET members = ? WHERE band_id = ?",
-            (members_str, band_id)
-        )
-        conn.execute(
-            "UPDATE users SET band_id = 0, band_role = 'member' WHERE user_id = ?",
-            (user_id,)
-        )
-        conn.commit()
-        if not members:
-            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
-            conn.commit()
-    conn.close()
-    return True
-
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -318,7 +238,7 @@ def profile(message):
     
     band_name = "Нет"
     if user["band_id"] != 0:
-        band = get_band(user["band_id"])
+        band = bands.get_band(user["band_id"])
         if band:
             band_name = band["name"]
     
@@ -458,11 +378,11 @@ def band_menu(message):
             "Выбери действие:",
             reply_markup=markup)
     else:
-        band = get_band(user["band_id"])
+        band = bands.get_band(user["band_id"])
         if not band:
             bot.send_message(message.chat.id, "❌ Лейбл не найден!")
             return
-        members = get_band_members(user["band_id"])
+        members = bands.get_band_members(user["band_id"])
         msg = "⚔️═══════════════⚔️\n"
         msg += f"   🏷️ {band['name']}\n"
         msg += "⚔️═══════════════⚔️\n\n"
@@ -498,7 +418,7 @@ def band_create_name(message):
         bot.send_message(message.chat.id, "❌ Название должно быть от 3 до 20 символов!")
         return
     
-    if get_band_by_name(name):
+    if bands.get_band_by_name(name):
         bot.send_message(message.chat.id, "❌ Лейбл с таким названием уже существует!")
         return
     
@@ -507,7 +427,7 @@ def band_create_name(message):
         return
     
     update_money(user_id, -75000)
-    band_id = create_band(user_id, name)
+    band_id = bands.create_band(user_id, name)
     if band_id:
         add_xp(user_id, 100)
         bot.send_message(message.chat.id, f"✅ Лейбл '{name}' создан! +100 XP")
@@ -527,12 +447,12 @@ def band_find(call):
 
 def band_find_name(message):
     name = message.text.strip()
-    band = get_band_by_name(name)
+    band = bands.get_band_by_name(name)
     if not band:
         bot.send_message(message.chat.id, "❌ Лейбл не найден!")
         return
     
-    members = get_band_members(band["band_id"])
+    members = bands.get_band_members(band["band_id"])
     msg = "⚔️═══════════════⚔️\n"
     msg += f"   🏷️ {band['name']}\n"
     msg += "⚔️═══════════════⚔️\n\n"
@@ -549,17 +469,81 @@ def band_join(call):
     user_id = call.from_user.id
     user = get_user(user_id)
     band_id = int(call.data.split("_")[2])
-    band = get_band(band_id)
+    band = bands.get_band(band_id)
     
     if user["band_id"] != 0:
         bot.answer_callback_query(call.id, "❌ Ты уже в лейбле!")
         return
     
-    if get_band_members_count(band_id) >= band["slots"]:
+    if bands.get_band_members_count(band_id) >= band["slots"]:
         bot.answer_callback_query(call.id, "❌ Лейбл полон!")
         return
     
-    add_member(band_id, user_id)
+    bands.add_member(band_id, user_id)
     add_xp(user_id, 25)
     bot.answer_callback_query(call.id, "✅ Ты вступил в лейбл! +25 XP")
-    bot.edit_message_text(f"✅ Ты всту
+    bot.edit_message_text(f"✅ Ты вступил в лейбл {band['name']}",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id)
+
+# ===== ЛЕЙБЛ - УЧАСТНИКИ =====
+@bot.callback_query_handler(func=lambda call: call.data == "band_members")
+def band_members(call):
+    user_id = call.from_user.id
+    user = get_user(user_id)
+    if not user or user["band_id"] == 0:
+        bot.answer_callback_query(call.id, "❌ Ты не в лейбле!")
+        return
+    
+    members = bands.get_band_members(user["band_id"])
+    band = bands.get_band(user["band_id"])
+    
+    msg = "⚔️═══════════════⚔️\n"
+    msg += f"   👥 {band['name']}\n"
+    msg += "⚔️═══════════════⚔️\n\n"
+    for m in members:
+        member = get_user(int(m))
+        if member:
+            role = member["band_role"]
+            msg += f"• {member['username']} ({role})\n"
+    bot.edit_message_text(msg,
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id)
+    bot.answer_callback_query(call.id)
+
+# ===== ЛЕЙБЛ - ВЫХОД (ПОДТВЕРЖДЕНИЕ) =====
+@bot.callback_query_handler(func=lambda call: call.data == "band_leave_confirm")
+def band_leave_confirm(call):
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(
+        telebot.types.InlineKeyboardButton("✅ ДА, ВЫЙТИ", callback_data="band_leave_yes"),
+        telebot.types.InlineKeyboardButton("❌ НЕТ, ОСТАТЬСЯ", callback_data="band_leave_no")
+    )
+    bot.edit_message_text(
+        "⚔️═══════════════⚔️\n"
+        "   🚪 ВЫХОД ИЗ ЛЕЙБЛА\n"
+        "⚔️═══════════════⚔️\n\n"
+        "⚠️ Ты уверен, что хочешь покинуть лейбл?\n\n"
+        "📌 После выхода:\n"
+        "• Ты потеряешь доступ к казне\n"
+        "• Вступить обратно можно через 24 часа\n\n"
+        "❓ Подтверди действие:",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == "band_leave_yes")
+def band_leave_yes(call):
+    user_id = call.from_user.id
+    user = get_user(user_id)
+    
+    if user["band_role"] == "leader":
+        if bands.get_band_members_count(user["band_id"]) > 1:
+            bot.answer_callback_query(call.id, "❌ Передай лидерство или распусти лейбл!")
+            return
+    
+    bands.remove_member(user["band_id"], user_id)
+    bot.answer_callback_query(call.id, "✅ Ты вышел из лейбла!")
+    bot.ed
