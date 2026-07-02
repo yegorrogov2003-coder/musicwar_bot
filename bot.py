@@ -203,14 +203,13 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
-# ===== БИЗНЕСЫ (НАЗВАНИЕ #6 ИЗМЕНЕНО) =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
     {"id": 3, "name": "Музыкальный магазин", "price": 300000, "income": 22000},
     {"id": 4, "name": "Рэп-баттл", "price": 600000, "income": 40000},
     {"id": 5, "name": "Студия записи", "price": 1200000, "income": 80000},
-    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},  # ← ИЗМЕНЕНО!
+    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},
     {"id": 7, "name": "Продакшн", "price": 6000000, "income": 400000},
     {"id": 8, "name": "Ночной клуб", "price": 15000000, "income": 950000},
     {"id": 9, "name": "Радио", "price": 30000000, "income": 1900000},
@@ -223,7 +222,7 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("Квартирник", "Профиль")
     markup.row("Бизнесы", "Мои бизнесы")
-    markup.row("Группировка", "Лейбл")  # ← КНОПКА ДОБАВЛЕНА!
+    markup.row("Группировка", "Лейбл")
     markup.row("Донат", "Помощь")
     return markup
 
@@ -412,7 +411,7 @@ def band_menu(message):
         return
 
     if user["band_id"] == 0:
-        bot.send_message(message.chat.id, 
+        bot.send_message(message.chat.id,
             "Ты не в лейбле!\n\n"
             "Команды:\n"
             "/band_create [название] — создать лейбл (75,000 монет)\n"
@@ -547,6 +546,10 @@ def donate(message):
 @bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_command(message):
     bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nГруппировка — выбрать группировку\nЛейбл — создать/вступить в лейбл\nДонат — покупка Кэш")
+
+@bot.message_handler(func=lambda message: message.text == "О боте")
+def about(message):
+    bot.send_message(message.chat.id, "MusicWar Bot v2.0\n50 уровней\n12 бизнесов\n4 группировки")
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
