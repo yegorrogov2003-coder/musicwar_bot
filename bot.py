@@ -46,7 +46,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("База данных создана!")
+    print("🎵 База данных создана!")
 
 def register_user(user_id, username):
     conn = get_db()
@@ -109,16 +109,16 @@ def add_xp(user_id, amount):
     return False, 1
 
 def get_rank(level):
-    if level <= 5: return "Начинающий"
-    elif level <= 10: return "Андеграунд"
-    elif level <= 15: return "Хип-хопер"
-    elif level <= 20: return "Прорыв"
-    elif level <= 25: return "Известный"
-    elif level <= 30: return "Популярный"
-    elif level <= 35: return "Топ-чарт"
-    elif level <= 40: return "Платиновый"
-    elif level <= 45: return "Бриллиантовый"
-    else: return "Music Legend"
+    if level <= 5: return "🎧 MC Новичок"
+    elif level <= 10: return "🎤 Андеграунд"
+    elif level <= 15: return "🎵 Хип-хопер"
+    elif level <= 20: return "🔥 Прорыв"
+    elif level <= 25: return "📀 Известный"
+    elif level <= 30: return "💿 Популярный"
+    elif level <= 35: return "🎶 Топ-чарт"
+    elif level <= 40: return "👑 Платиновый"
+    elif level <= 45: return "⭐ Бриллиантовый"
+    else: return "💎 Music Legend"
 
 # ===== ФУНКЦИИ ЛЕЙБЛОВ =====
 
@@ -204,26 +204,26 @@ def remove_member(band_id, user_id):
     return True
 
 BUSINESSES = [
-    {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
-    {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
-    {"id": 3, "name": "Музыкальный магазин", "price": 300000, "income": 22000},
-    {"id": 4, "name": "Рэп-баттл", "price": 600000, "income": 40000},
-    {"id": 5, "name": "Студия записи", "price": 1200000, "income": 80000},
-    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},
-    {"id": 7, "name": "Продакшн", "price": 6000000, "income": 400000},
-    {"id": 8, "name": "Ночной клуб", "price": 15000000, "income": 950000},
-    {"id": 9, "name": "Радио", "price": 30000000, "income": 1900000},
-    {"id": 10, "name": "Клипмейкер", "price": 60000000, "income": 3800000},
-    {"id": 11, "name": "ТВ-канал", "price": 120000000, "income": 7500000},
-    {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
+    {"id": 1, "name": "🎹 Битмейкер", "price": 50000, "income": 5000},
+    {"id": 2, "name": "🎧 Студия звука", "price": 120000, "income": 10000},
+    {"id": 3, "name": "🎵 Музыкальный магазин", "price": 300000, "income": 22000},
+    {"id": 4, "name": "⚔️ Рэп-баттл", "price": 600000, "income": 40000},
+    {"id": 5, "name": "🎤 Студия записи", "price": 1200000, "income": 80000},
+    {"id": 6, "name": "🏢 Звукозаписывающая студия", "price": 3000000, "income": 200000},
+    {"id": 7, "name": "🎬 Продакшн", "price": 6000000, "income": 400000},
+    {"id": 8, "name": "🔥 Ночной клуб", "price": 15000000, "income": 950000},
+    {"id": 9, "name": "📻 Радио", "price": 30000000, "income": 1900000},
+    {"id": 10, "name": "🎥 Клипмейкер", "price": 60000000, "income": 3800000},
+    {"id": 11, "name": "📺 ТВ-канал", "price": 120000000, "income": 7500000},
+    {"id": 12, "name": "👑 Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
 def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.row("Квартирник", "Профиль")
-    markup.row("Бизнесы", "Мои бизнесы")
-    markup.row("Группировка", "Лейбл")
-    markup.row("Донат", "Помощь")
+    markup.row("🎤 Квартирник", "👤 Профиль")
+    markup.row("🏢 Бизнесы", "📊 Мои бизнесы")
+    markup.row("🏷️ Лейбл", "💰 Донат")
+    markup.row("📖 Помощь", "ℹ️ О боте")
     return markup
 
 @bot.message_handler(commands=['start'])
@@ -236,35 +236,63 @@ def start(message):
     if not user["group_name"]:
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(
-            telebot.types.InlineKeyboardButton("Реперы", callback_data="group_Реперы"),
-            telebot.types.InlineKeyboardButton("Рокеры", callback_data="group_Рокеры")
+            telebot.types.InlineKeyboardButton("🎤 RAP", callback_data="group_Реперы"),
+            telebot.types.InlineKeyboardButton("🎸 ROCK", callback_data="group_Рокеры")
         )
         markup.add(
-            telebot.types.InlineKeyboardButton("Меломаны", callback_data="group_Меломаны"),
-            telebot.types.InlineKeyboardButton("Клубмены", callback_data="group_Клубмены")
+            telebot.types.InlineKeyboardButton("🎵 MUSICWAR", callback_data="group_Меломаны"),
+            telebot.types.InlineKeyboardButton("🎧 CLUB", callback_data="group_Клубмены")
         )
-        bot.send_message(message.chat.id, "Добро пожаловать! Выбери группировку:", reply_markup=markup)
+        bot.send_message(message.chat.id,
+            "╔═══════════════════════╗\n"
+            "│     🎵 MUSICWAR 🎵     │\n"
+            "│  ГДЕ МУЗЫКА = БИТВА  │\n"
+            "╚═══════════════════════╝\n\n"
+            "🔥 Добро пожаловать в MusicWar!\n"
+            "🎤 RAP  |  🎸 ROCK\n"
+            "🎵 MUSICWAR  |  🎧 CLUB\n\n"
+            "⬇️ Выбери свою группировку:",
+            reply_markup=markup)
     else:
-        bot.send_message(message.chat.id, f"С возвращением! Группировка: {user['group_name']}", reply_markup=main_menu())
+        bot.send_message(message.chat.id,
+            f"╔═══════════════════════╗\n"
+            f"│     🎵 MUSICWAR 🎵     │\n"
+            f"╚═══════════════════════╝\n\n"
+            f"🔥 С возвращением, боец!\n"
+            f"🎵 Группировка: {user['group_name']}\n"
+            f"🎯 Готов к битве?",
+            reply_markup=main_menu())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("group_"))
 def set_group_callback(call):
     group_name = call.data.split("_")[1]
     set_group(call.from_user.id, group_name)
     add_xp(call.from_user.id, 15)
-    bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
-    bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
+    bot.edit_message_text(
+        f"╔═══════════════════════╗\n"
+        f"│  🎵 Ты выбрал: {group_name} │\n"
+        f"╚═══════════════════════╝\n\n"
+        f"🔥 Добро пожаловать в битву!",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    bot.send_message(call.message.chat.id,
+        "╔═══════════════════════╗\n"
+        "│  🎵 MUSICWAR 🎵       │\n"
+        "│  Используй кнопки!   │\n"
+        "╚═══════════════════════╝",
+        reply_markup=main_menu())
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(func=lambda message: message.text == "Квартирник")
+@bot.message_handler(func=lambda message: message.text in ["🎤 Квартирник", "Квартирник"])
 def attack(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
     if not user["group_name"]:
-        bot.send_message(message.chat.id, "Выбери группировку через /start")
+        bot.send_message(message.chat.id, "❌ Сначала выбери группировку через /start")
         return
 
     income = random.randint(1000, 5000)
@@ -273,22 +301,32 @@ def attack(message):
     leveled_up, new_level = add_xp(user_id, xp_gain)
     user = get_user(user_id)
 
-    msg = f"Ты заработал {income} монет!\n+{xp_gain} опыта\nВсего монет: {user['money']}"
+    msg = "╔═══════════════════════╗\n"
+    msg += "│     🎤 КВАРТИРНИК    │\n"
+    msg += "│   МУЗЫКА И БИТВА    │\n"
+    msg += "╚═══════════════════════╝\n\n"
+    msg += f"💰 Заработано: {income} монет\n"
+    msg += f"✨ +{xp_gain} опыта\n"
+    msg += f"💵 Всего монет: {user['money']}\n"
 
     if leveled_up:
         rank = get_rank(new_level)
-        msg += f"\nУРОВЕНЬ ПОВЫШЕН! Ты достиг {new_level} уровня! Новое звание: {rank}!"
+        msg += f"\n╔═══════════════════════╗\n"
+        msg += f"│  🎉 УРОВЕНЬ ПОВЫШЕН! │\n"
+        msg += f"╚═══════════════════════╝\n"
+        msg += f"⭐ Ты достиг {new_level} уровня!\n"
+        msg += f"🏆 Новое звание: {rank}!"
         if new_level % 10 == 0:
-            msg += f"\nБонус к доходу: +{new_level // 2}%!"
+            msg += f"\n💰 Бонус к доходу: +{new_level // 2}%!"
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text == "Профиль")
+@bot.message_handler(func=lambda message: message.text in ["👤 Профиль", "Профиль"])
 def profile(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     group = user["group_name"] or "не выбрана"
@@ -311,25 +349,43 @@ def profile(message):
     rank = get_rank(user["level"])
     xp_for_next = user["level"] * 100
 
-    msg = f"Профиль:\nИгрок: {user['username']}\nГруппировка: {group}\nЛейбл: {band_name}\nУровень: {user['level']} ({rank})\nОпыт: {user['xp']}/{xp_for_next} XP\nМонет: {user['money']}\nДоход: {total_income} монет/час"
+    msg = "╔═══════════════════════╗\n"
+    msg += "│      👤 ПРОФИЛЬ      │\n"
+    msg += "╚═══════════════════════╝\n\n"
+    msg += f"🎯 Игрок: {user['username']}\n"
+    msg += f"🎵 Группировка: {group}\n"
+    msg += f"🏷️ Лейбл: {band_name}\n"
+    msg += f"⭐ Уровень: {user['level']} ({rank})\n"
+    msg += f"📈 Опыт: {user['xp']}/{xp_for_next} XP\n"
+    msg += f"💰 Монет: {user['money']}\n"
+    msg += f"📈 Доход: {total_income} монет/час"
     if level_bonus > 0:
-        msg += f"\nБонус уровня: +{level_bonus}%"
+        msg += f"\n🎯 Бонус уровня: +{level_bonus}%"
+    msg += "\n╔═══════════════════════╗"
+
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text == "Бизнесы")
+@bot.message_handler(func=lambda message: message.text in ["🏢 Бизнесы", "Бизнесы"])
 def show_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
-    response = "Магазин бизнесов:\n"
+    response = "╔═══════════════════════╗\n"
+    response += "│    🏢 МАГАЗИН        │\n"
+    response += "│     БИЗНЕСОВ        │\n"
+    response += "╚═══════════════════════╝\n\n"
+
     for b in BUSINESSES:
         owned = get_business_level(user_id, b["id"]) > 0
-        status = "Владеешь" if owned else "Нет"
-        response += f"{b['id']}. {b['name']} — {b['price']} монет, доход {b['income']}/ч ({status})\n"
-    response += "Напиши: Купить бизнес N"
+        status = "✅" if owned else "❌"
+        response += f"{b['id']}. {b['name']}\n"
+        response += f"   💰 {b['price']} | 📈 {b['income']}/ч {status}\n\n"
+
+    response += "╔═══════════════════════╗\n"
+    response += "📌 Напиши: *Купить бизнес N*"
     bot.send_message(message.chat.id, response)
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
@@ -337,68 +393,75 @@ def buy_business_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     try:
         business_id = int(message.text.split()[-1])
     except:
-        bot.send_message(message.chat.id, "Формат: Купить бизнес N")
+        bot.send_message(message.chat.id, "❌ Формат: Купить бизнес N")
         return
 
     if business_id < 1 or business_id > len(BUSINESSES):
-        bot.send_message(message.chat.id, "Нет такого бизнеса!")
+        bot.send_message(message.chat.id, "❌ Нет такого бизнеса!")
         return
 
     if get_business_level(user_id, business_id) > 0:
-        bot.send_message(message.chat.id, "У тебя уже есть этот бизнес!")
+        bot.send_message(message.chat.id, "❌ У тебя уже есть этот бизнес!")
         return
 
     b = BUSINESSES[business_id - 1]
     if user["money"] < b["price"]:
-        bot.send_message(message.chat.id, f"Нужно {b['price']} монет!")
+        bot.send_message(message.chat.id, f"❌ Нужно {b['price']} монет!")
         return
 
     update_money(user_id, -b["price"])
     buy_business(user_id, business_id)
     add_xp(user_id, 50)
-    bot.send_message(message.chat.id, f"Купил {b['name']}! +50 XP")
+    bot.send_message(message.chat.id,
+        f"╔═══════════════════════╗\n"
+        f"│  🏢 Ты купил:         │\n"
+        f"│  {b['name']} │\n"
+        f"╚═══════════════════════╝\n\n"
+        f"💰 +50 XP")
 
-@bot.message_handler(func=lambda message: message.text == "Мои бизнесы")
+@bot.message_handler(func=lambda message: message.text in ["📊 Мои бизнесы", "Мои бизнесы"])
 def my_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     businesses = get_user_businesses(user_id)
     if not businesses:
-        bot.send_message(message.chat.id, "У тебя нет бизнесов!")
+        bot.send_message(message.chat.id, "📊 У тебя нет бизнесов! Начни своё музыкальное дело!")
         return
 
     level_bonus = (user["level"] // 10) * 5
+    response = "╔═══════════════════════╗\n"
+    response += "│   📊 МОИ БИЗНЕСЫ    │\n"
+    response += "╚═══════════════════════╝\n\n"
 
-    response = "Мои бизнесы:\n"
     total_income = 0
     for b in businesses:
         biz = BUSINESSES[b["business_id"] - 1]
         income = biz["income"] * (1 + b["level"] * 0.1)
         income = int(income * (1 + level_bonus / 100))
         total_income += income
-        response += f"{biz['name']} (ур.{b['level']}) — {income} монет/час\n"
-    response += f"Общий доход: {total_income} монет/час"
-    if level_bonus > 0:
-        response += f"\nБонус уровня: +{level_bonus}%"
-    bot.send_message(message.chat.id, response)
+        response += f"• {biz['name']} (ур.{b['level']})\n"
+        response += f"  📈 {income} монет/час\n\n"
 
-@bot.message_handler(func=lambda message: message.text == "Группировка")
-def group_menu(message):
-    start(message)
+    response += "╔═══════════════════════╗\n"
+    response += f"💰 Общий доход: {total_income} монет/час"
+    if level_bonus > 0:
+        response += f"\n🎯 Бонус уровня: +{level_bonus}%"
+
+    bot.send_message(message.chat.id, response)
 
 # ===== ЛЕЙБЛЫ =====
 
-@bot.message_handler(func=lambda message: message.text == "Лейбл")
+@bot.message_handler(func=lambda message: message.text in ["🏷️ Лейбл", "Лейбл"])
 def band_menu_button(message):
     band_menu(message)
 
@@ -407,166 +470,119 @@ def band_menu(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     if user["band_id"] == 0:
         bot.send_message(message.chat.id,
-            "Ты не в лейбле!\n\n"
-            "Команды:\n"
-            "/band_create [название] — создать лейбл (75,000 монет)\n"
-            "/band_join [название] — вступить в лейбл")
+            "╔═══════════════════════╗\n"
+            "│     🏷️ ЛЕЙБЛ          │\n"
+            "╚═══════════════════════╝\n\n"
+            "🔥 Ты не в лейбле!\n\n"
+            "📌 Команды:\n"
+            "➡️ /band_create [название] — создать лейбл (75,000 монет)\n"
+            "➡️ /band_join [название] — вступить в лейбл\n\n"
+            "⚔️ Стань частью команды!")
     else:
         band = get_band(user["band_id"])
         if band:
             members = get_band_members(user["band_id"])
-            msg = f"Лейбл: {band['name']}\nУчастников: {len(members)}\n\nКоманды:\n/band_leave — выйти\n/band_members — список участников"
+            msg = "╔═══════════════════════╗\n"
+            msg += f"│     🏷️ {band['name']}  │\n"
+            msg += "╚═══════════════════════╝\n\n"
+            msg += f"👥 Участников: {len(members)}\n\n"
+            msg += "📌 Команды:\n"
+            msg += "➡️ /band_leave — выйти из лейбла\n"
+            msg += "➡️ /band_members — список участников"
             bot.send_message(message.chat.id, msg)
         else:
-            bot.send_message(message.chat.id, "Лейбл не найден!")
+            bot.send_message(message.chat.id, "❌ Лейбл не найден!")
 
 @bot.message_handler(commands=['band_create'])
 def band_create_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     if user["band_id"] != 0:
-        bot.send_message(message.chat.id, "Ты уже в лейбле!")
+        bot.send_message(message.chat.id, "❌ Ты уже в лейбле!")
         return
 
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        bot.send_message(message.chat.id, "Формат: /band_create [название]")
+        bot.send_message(message.chat.id, "❌ Формат: /band_create [название]")
         return
 
     name = args[1].strip()
     if len(name) < 3 or len(name) > 20:
-        bot.send_message(message.chat.id, "Название должно быть от 3 до 20 символов!")
+        bot.send_message(message.chat.id, "❌ Название должно быть от 3 до 20 символов!")
         return
 
     if get_band_by_name(name):
-        bot.send_message(message.chat.id, "Лейбл с таким названием уже существует!")
+        bot.send_message(message.chat.id, "❌ Лейбл с таким названием уже существует!")
         return
 
     if user["money"] < 75000:
-        bot.send_message(message.chat.id, f"Нужно 75,000 монет! У тебя {user['money']}")
+        bot.send_message(message.chat.id, f"❌ Нужно 75,000 монет! У тебя {user['money']}")
         return
 
     update_money(user_id, -75000)
     band_id = create_band(user_id, name)
     if band_id:
         add_xp(user_id, 100)
-        bot.send_message(message.chat.id, f"Лейбл {name} создан! +100 XP")
+        bot.send_message(message.chat.id,
+            f"╔═══════════════════════╗\n"
+            f"│  🏷️ Лейбл создан!    │\n"
+            f"│  {name} │\n"
+            f"╚═══════════════════════╝\n\n"
+            f"🔥 Ты стал лидером!\n"
+            f"💰 +100 XP")
     else:
-        bot.send_message(message.chat.id, "Ошибка при создании лейбла!")
+        bot.send_message(message.chat.id, "❌ Ошибка при создании лейбла!")
 
 @bot.message_handler(commands=['band_join'])
 def band_join_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     if user["band_id"] != 0:
-        bot.send_message(message.chat.id, "Ты уже в лейбле!")
+        bot.send_message(message.chat.id, "❌ Ты уже в лейбле!")
         return
 
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        bot.send_message(message.chat.id, "Формат: /band_join [название]")
+        bot.send_message(message.chat.id, "❌ Формат: /band_join [название]")
         return
 
     name = args[1].strip()
     band = get_band_by_name(name)
     if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
+        bot.send_message(message.chat.id, "❌ Лейбл не найден!")
         return
 
     add_member(band["band_id"], user_id)
     add_xp(user_id, 25)
-    bot.send_message(message.chat.id, f"Ты вступил в лейбл {name}! +25 XP")
+    bot.send_message(message.chat.id,
+        f"╔═══════════════════════╗\n"
+        f"│  🏷️ Вступление       │\n"
+        f"│  в {name} │\n"
+        f"╚═══════════════════════╝\n\n"
+        f"🔥 Добро пожаловать в команду!\n"
+        f"💰 +25 XP")
 
 @bot.message_handler(commands=['band_leave'])
 def band_leave_command(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "❌ Сначала напиши /start")
         return
 
     if user["band_id"] == 0:
-        bot.send_message(message.chat.id, "Ты не в лейбле!")
-        return
-
-    band = get_band(user["band_id"])
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
-        return
-
-    remove_member(user["band_id"], user_id)
-    bot.send_message(message.chat.id, f"Ты вышел из лейбла {band['name']}!")
-
-@bot.message_handler(commands=['band_members'])
-def band_members_command(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
-        return
-
-    if user["band_id"] == 0:
-        bot.send_message(message.chat.id, "Ты не в лейбле!")
-        return
-
-    band = get_band(user["band_id"])
-    if not band:
-        bot.send_message(message.chat.id, "Лейбл не найден!")
-        return
-
-    members = get_band_members(user["band_id"])
-    if not members:
-        bot.send_message(message.chat.id, "В лейбле пока нет участников.")
-        return
-
-    msg = f"Участники лейбла {band['name']}:\n"
-    for m in members:
-        member = get_user(int(m))
-        if member:
-            msg += f"- {member['username']}\n"
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text == "Донат")
-def donate(message):
-    bot.send_message(message.chat.id, "Донат:\nКэш — 100 монет (50₽)\nКэш+ — 500 монет (200₽)\nVIP — 1000 монет (400₽)\nДля покупки напиши @SupportBot")
-
-@bot.message_handler(func=lambda message: message.text == "Помощь")
-def help_command(message):
-    bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nГруппировка — выбрать группировку\nЛейбл — создать/вступить в лейбл\nДонат — покупка Кэш")
-
-@bot.message_handler(func=lambda message: message.text == "О боте")
-def about(message):
-    bot.send_message(message.chat.id, "MusicWar Bot v2.0\n50 уровней\n12 бизнесов\n4 группировки")
-
-@bot.message_handler(func=lambda message: True)
-def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу или напиши /help.")
-
-if __name__ == "__main__":
-    init_db()
-    print("БОТ ЗАПУЩЕН!")
-    print("MusicWar Bot готов к работе!")
-    print("Загружено 12 бизнесов")
-    print("Система уровней: 50 уровней")
-    print("Команды лейблов загружены!")
-
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0)
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            print("Перезапуск через 5 секунд...")
-            time.sleep(5)
+        bot.send_message(message.chat.id, "❌ Ты не в лейбле!")
+        ret
