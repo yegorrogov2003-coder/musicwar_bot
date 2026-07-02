@@ -7,21 +7,8 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def get_band(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    return band
-
-def get_band_members(band_id):
-    conn = get_db()
-    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
-    conn.close()
-    if band and band["members"]:
-        return [int(m) for m in band["members"].split(",") if m]
-    return []
-
 def create_band(leader_id, name):
+    """Создает новый лейбл"""
     conn = get_db()
     try:
         cursor = conn.execute(
@@ -40,13 +27,35 @@ def create_band(leader_id, name):
     finally:
         conn.close()
 
+def get_band(band_id):
+    """Получает данные о лейбле"""
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    return band
+
 def get_band_by_name(name):
+    """Ищет лейбл по названию"""
     conn = get_db()
     band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
     conn.close()
     return band
 
+def get_band_members(band_id):
+    """Возвращает список участников лейбла"""
+    conn = get_db()
+    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    if band and band["members"]:
+        return [int(m) for m in band["members"].split(",") if m]
+    return []
+
+def get_band_members_count(band_id):
+    """Возвращает количество участников"""
+    return len(get_band_members(band_id))
+
 def add_member(band_id, user_id):
+    """Добавляет участника в лейбл"""
     conn = get_db()
     members = get_band_members(band_id)
     if user_id not in members:
@@ -64,6 +73,7 @@ def add_member(band_id, user_id):
     conn.close()
 
 def remove_member(band_id, user_id):
+    """Удаляет участника из лейбла"""
     conn = get_db()
     members = get_band_members(band_id)
     if user_id in members:
@@ -78,11 +88,29 @@ def remove_member(band_id, user_id):
             (user_id,)
         )
         conn.commit()
+        if not members:
+            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+            conn.commit()
     conn.close()
     return True
 
+def update_band_fund(band_id, amount):
+    """Обновляет фонд лейбла"""
+    conn = get_db()
+    conn.execute("UPDATE bands SET fund = fund + ? WHERE band_id = ?", (amount, band_id))
+    conn.commit()
+    conn.close()
+
 def get_all_bands():
+    """Получает все лейблы (для топа)"""
     conn = get_db()
     bands = conn.execute("SELECT * FROM bands ORDER BY fund DESC").fetchall()
     conn.close()
     return bands
+
+def delete_band(band_id):
+    """Удаляет лейбл"""
+    conn = get_db()
+    conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+    conn.commit()
+    conn.close()
