@@ -203,20 +203,20 @@ def remove_member(gang_id, user_id):
     conn.close()
     return True
 
-# ===== БИЗНЕСЫ =====
+# ===== ТВОИ БИЗНЕСЫ =====
 BUSINESSES = [
-    {"id": 1, "name": "Киоск", "price": 25000, "income": 4500},
-    {"id": 2, "name": "Кафе", "price": 100000, "income": 16000},
-    {"id": 3, "name": "Автомойка", "price": 220000, "income": 34000},
-    {"id": 4, "name": "Гараж", "price": 350000, "income": 55000},
-    {"id": 5, "name": "Барбершоп", "price": 550000, "income": 82000},
-    {"id": 6, "name": "СТО", "price": 850000, "income": 125000},
-    {"id": 7, "name": "Ресторан", "price": 1500000, "income": 210000},
-    {"id": 8, "name": "Ночной клуб", "price": 3000000, "income": 400000},
-    {"id": 9, "name": "Отель", "price": 6000000, "income": 750000},
-    {"id": 10, "name": "ТЦ", "price": 15000000, "income": 1800000},
-    {"id": 11, "name": "Бизнес-центр", "price": 40000000, "income": 4500000},
-    {"id": 12, "name": "Медиахолдинг", "price": 100000000, "income": 10000000}
+    {"id": 1, "name": "Beatmaker", "price": 50000, "income": 5000},
+    {"id": 2, "name": "Sound Studio", "price": 120000, "income": 10000},
+    {"id": 3, "name": "Music Shop", "price": 300000, "income": 22000},
+    {"id": 4, "name": "Rap Battle", "price": 600000, "income": 40000},
+    {"id": 5, "name": "Record Studio", "price": 1200000, "income": 80000},
+    {"id": 6, "name": "Recording Studio", "price": 3000000, "income": 200000},
+    {"id": 7, "name": "Production", "price": 6000000, "income": 400000},
+    {"id": 8, "name": "Night Club", "price": 15000000, "income": 950000},
+    {"id": 9, "name": "Radio", "price": 30000000, "income": 1900000},
+    {"id": 10, "name": "Clip Maker", "price": 60000000, "income": 3800000},
+    {"id": 11, "name": "TV Channel", "price": 120000000, "income": 7500000},
+    {"id": 12, "name": "Media Empire", "price": 300000000, "income": 18000000}
 ]
 
 def main_menu():
@@ -305,7 +305,6 @@ def buy_business_callback(call):
 
     bot.answer_callback_query(call.id, f"Куплен: {biz['name']}! +50 XP")
 
-    # Обновляем карточку
     msg = f"=== {biz['name']} ===\n\n"
     msg += f"💰 Цена: {biz['price']} монет\n"
     msg += f"📈 Доход: {biz['income']} монет/час\n"
@@ -601,5 +600,4 @@ def gang_join_command(message):
     add_xp(user_id, 25)
     bot.send_message(message.chat.id, f"Ты вступил в банду '{name}'! +25 XP")
 
-@bot.message_handler(commands=['gang_leave'])
-def gang_leave_c
+@bot.message_handler(commands=['ga
