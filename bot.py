@@ -123,7 +123,7 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
-# ===== ЛЕЙБЛЫ (ВСЁ В ОДНОМ ФАЙЛЕ) =====
+# ===== ЛЕЙБЛЫ =====
 def create_band(leader_id, name):
     conn = get_db()
     try:
@@ -204,6 +204,7 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
+# ===== БИЗНЕСЫ =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -563,4 +564,4 @@ def band_join(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "band_members")
 def band_members(call):
-    user_id = call
+    user_id = ca
