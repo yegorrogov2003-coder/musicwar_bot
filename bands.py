@@ -86,9 +86,3 @@ def remove_member(band_id, user_id):
             conn.commit()
     conn.close()
     return True
-
-def get_all_bands():
-    conn = get_db()
-    bands = conn.execute("SELECT * FROM bands ORDER BY fund DESC").fetchall()
-    conn.close()
-    return bands
