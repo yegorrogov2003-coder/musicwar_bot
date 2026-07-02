@@ -23,7 +23,9 @@ def init_db():
             group_name TEXT DEFAULT '',
             money INTEGER DEFAULT 0,
             xp INTEGER DEFAULT 0,
-            level INTEGER DEFAULT 1
+            level INTEGER DEFAULT 1,
+            band_id INTEGER DEFAULT 0,
+            band_role TEXT DEFAULT 'member'
         )
     ''')
     conn.execute('''
@@ -51,7 +53,7 @@ def init_db():
 
 def register_user(user_id, username):
     conn = get_db()
-    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level) VALUES (?, ?, 1000, 0, 1)", (user_id, username))
+    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level, band_id, band_role) VALUES (?, ?, 1000, 0, 1, 0, 'member')", (user_id, username))
     conn.commit()
     conn.close()
 
@@ -121,6 +123,88 @@ def get_rank(level):
     elif level <= 45: return "⭐ Бриллиантовый"
     else: return "💎 Music Legend"
 
+# ===== ЛЕЙБЛЫ (ФУНКЦИИ) =====
+def create_band(leader_id, name):
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO bands (name, leader_id, members, slots) VALUES (?, ?, ?, 5)",
+            (name, leader_id, str(leader_id))
+        )
+        band_id = cursor.lastrowid
+        conn.execute(
+            "UPDATE users SET band_id = ?, band_role = 'leader' WHERE user_id = ?",
+            (band_id, leader_id)
+        )
+        conn.commit()
+        return band_id
+    except:
+        return None
+    finally:
+        conn.close()
+
+def get_band(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_by_name(name):
+    conn = get_db()
+    band = conn.execute("SELECT * FROM bands WHERE name = ?", (name,)).fetchone()
+    conn.close()
+    return band
+
+def get_band_members(band_id):
+    conn = get_db()
+    band = conn.execute("SELECT members FROM bands WHERE band_id = ?", (band_id,)).fetchone()
+    conn.close()
+    if band and band["members"]:
+        return [int(m) for m in band["members"].split(",") if m]
+    return []
+
+def get_band_members_count(band_id):
+    return len(get_band_members(band_id))
+
+def add_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id not in members:
+        members.append(user_id)
+        members_str = ",".join(str(m) for m in members)
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = ?, band_role = 'member' WHERE user_id = ?",
+            (band_id, user_id)
+        )
+        conn.commit()
+    conn.close()
+
+def remove_member(band_id, user_id):
+    conn = get_db()
+    members = get_band_members(band_id)
+    if user_id in members:
+        members.remove(user_id)
+        members_str = ",".join(str(m) for m in members) if members else ""
+        conn.execute(
+            "UPDATE bands SET members = ? WHERE band_id = ?",
+            (members_str, band_id)
+        )
+        conn.execute(
+            "UPDATE users SET band_id = 0, band_role = 'member' WHERE user_id = ?",
+            (user_id,)
+        )
+        conn.commit()
+        if not members:
+            conn.execute("DELETE FROM bands WHERE band_id = ?", (band_id,))
+            conn.commit()
+    conn.close()
+    return True
+
+# ===== БИЗНЕСЫ =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -140,8 +224,8 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("🎤 Квартирник", "👤 Профиль")
     markup.row("🏢 Бизнесы", "📊 Мои бизнесы")
-    markup.row("🎵 Группировка", "💰 Донат")
-    markup.row("📖 Помощь", "ℹ️ О боте")
+    markup.row("🎵 Группировка", "🏷️ Лейбл")  # ← КНОПКА ДОБАВЛЕНА
+    markup.row("💰 Донат", "📖 Помощь")
     return markup
 
 @bot.message_handler(commands=['start'])
@@ -232,6 +316,14 @@ def profile(message):
         return
     
     group = user["group_name"] or "не выбрана"
+    
+    # Проверяем лейбл
+    band_name = "Нет"
+    if user["band_id"] != 0:
+        band = get_band(user["band_id"])
+        if band:
+            band_name = band["name"]
+    
     businesses = get_user_businesses(user_id)
     total_income = 0
     for b in businesses:
@@ -249,7 +341,8 @@ def profile(message):
     msg += "   🎵 MUSICWAR 🎵\n"
     msg += "⚔️═══════════════⚔️\n\n"
     msg += f"👤 Игрок: {user['username']}\n"
-    msg += f"🎵 Группировка: {group}\n\n"
+    msg += f"🎵 Группировка: {group}\n"
+    msg += f"🏷️ Лейбл: {band_name}\n\n"
     msg += f"⭐ Уровень: {user['level']} ({rank})\n"
     msg += f"📈 Опыт: {user['xp']}/{xp_for_next} XP\n"
     msg += f"💰 Монет: {user['money']:,}\n"
@@ -346,6 +439,10 @@ def my_businesses(message):
 def group_menu(message):
     start(message)
 
+@bot.message_handler(func=lambda message: message.text in ["🏷️ Лейбл", "Лейбл"])
+def band_menu(message):
+    bot.send_message(message.chat.id, "🏷️ Лейблы скоро появятся!")
+
 @bot.message_handler(func=lambda message: message.text in ["💰 Донат", "Донат"])
 def donate(message):
     msg = "⚔️═══════════════⚔️\n"
@@ -368,6 +465,7 @@ def help_command(message):
     msg += "🏢 Бизнесы — магазин бизнесов\n"
     msg += "📊 Мои бизнесы — твои бизнесы\n"
     msg += "🎵 Группировка — выбрать группировку\n"
+    msg += "🏷️ Лейбл — управление лейблом\n"
     msg += "💰 Донат — покупка Кэш\n"
     msg += "⚔️═══════════════⚔️\n\n"
     msg += "📌 Используй кнопки внизу!"
@@ -395,6 +493,7 @@ if __name__ == "__main__":
     print("🤖 MusicWar Bot готов к работе!")
     print("📊 Загружено 12 бизнесов")
     print("⭐ Система уровней: 50 уровней")
+    print("🏷️ Лейблы добавлены")
     
     while True:
         try:
