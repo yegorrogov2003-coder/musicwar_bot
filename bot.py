@@ -109,18 +109,18 @@ def add_xp(user_id, amount):
     return False, 1
 
 def get_rank(level):
-    if level <= 5: return "MC Rookie"
-    elif level <= 10: return "Underground"
-    elif level <= 15: return "Hip-Hoper"
-    elif level <= 20: return "Breakthrough"
-    elif level <= 25: return "Famous"
-    elif level <= 30: return "Popular"
-    elif level <= 35: return "Top Chart"
-    elif level <= 40: return "Platinum"
-    elif level <= 45: return "Diamond"
+    if level <= 5: return "Новичок"
+    elif level <= 10: return "Андеграунд"
+    elif level <= 15: return "Хип-хопер"
+    elif level <= 20: return "Прорыв"
+    elif level <= 25: return "Известный"
+    elif level <= 30: return "Популярный"
+    elif level <= 35: return "Топ-чарт"
+    elif level <= 40: return "Платиновый"
+    elif level <= 45: return "Бриллиантовый"
     else: return "Music Legend"
 
-# ===== GANG FUNCTIONS =====
+# ===== ФУНКЦИИ БАНД =====
 
 def create_gang(leader_id, name):
     conn = get_db()
@@ -203,20 +203,20 @@ def remove_member(gang_id, user_id):
     conn.close()
     return True
 
-# ===== ТВОИ БИЗНЕСЫ =====
+# ===== МУЗЫКАЛЬНЫЕ БИЗНЕСЫ =====
 BUSINESSES = [
-    {"id": 1, "name": "Beatmaker", "price": 50000, "income": 5000},
-    {"id": 2, "name": "Sound Studio", "price": 120000, "income": 10000},
-    {"id": 3, "name": "Music Shop", "price": 300000, "income": 22000},
-    {"id": 4, "name": "Rap Battle", "price": 600000, "income": 40000},
-    {"id": 5, "name": "Record Studio", "price": 1200000, "income": 80000},
-    {"id": 6, "name": "Recording Studio", "price": 3000000, "income": 200000},
-    {"id": 7, "name": "Production", "price": 6000000, "income": 400000},
-    {"id": 8, "name": "Night Club", "price": 15000000, "income": 950000},
-    {"id": 9, "name": "Radio", "price": 30000000, "income": 1900000},
-    {"id": 10, "name": "Clip Maker", "price": 60000000, "income": 3800000},
-    {"id": 11, "name": "TV Channel", "price": 120000000, "income": 7500000},
-    {"id": 12, "name": "Media Empire", "price": 300000000, "income": 18000000}
+    {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
+    {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
+    {"id": 3, "name": "Музыкальный магазин", "price": 300000, "income": 22000},
+    {"id": 4, "name": "Рэп-баттл", "price": 600000, "income": 40000},
+    {"id": 5, "name": "Студия записи", "price": 1200000, "income": 80000},
+    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},
+    {"id": 7, "name": "Продакшн", "price": 6000000, "income": 400000},
+    {"id": 8, "name": "Ночной клуб", "price": 15000000, "income": 950000},
+    {"id": 9, "name": "Радио", "price": 30000000, "income": 1900000},
+    {"id": 10, "name": "Клипмейкер", "price": 60000000, "income": 3800000},
+    {"id": 11, "name": "ТВ-канал", "price": 120000000, "income": 7500000},
+    {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
 def main_menu():
@@ -600,4 +600,4 @@ def gang_join_command(message):
     add_xp(user_id, 25)
     bot.send_message(message.chat.id, f"Ты вступил в банду '{name}'! +25 XP")
 
-@bot.message_handler(commands=['ga
+@bot.message
