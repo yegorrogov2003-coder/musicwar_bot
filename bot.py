@@ -203,7 +203,7 @@ def remove_member(gang_id, user_id):
     conn.close()
     return True
 
-# ===== МУЗЫКАЛЬНЫЕ БИЗНЕСЫ =====
+# ===== МУЗЫКАЛЬНЫЕ БИЗНЕСЫ (ПРОВЕРЕНО) =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -600,4 +600,3 @@ def gang_join_command(message):
     add_xp(user_id, 25)
     bot.send_message(message.chat.id, f"Ты вступил в банду '{name}'! +25 XP")
 
-@bot.message
