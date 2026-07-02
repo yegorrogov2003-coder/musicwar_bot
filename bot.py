@@ -477,20 +477,111 @@ def about(message):
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
-    bot.send_message(message.chat.id, "🤷 Неизвестная команда.\nИспользуй кнопки внизу.")
+    bot.send_message(message.chat.id, "🤷 Неизвестная команда.\nИспользуй кнопки внизу или напиши /help.")
 
-if __name__ == "__main__":
-    init_db()
-    print("✅ БОТ ЗАПУЩЕН!")
-    print("🤖 MusicWar Bot готов к работе!")
-    print("📊 Загружено 12 бизнесов")
-    print("⭐ Система уровней: 50 уровней")
-    print("🏷️ Функции лейблов загружены (без кнопки)")
+# ===== ОБРАБОТЧИКИ КОМАНД ЛЕЙБЛОВ =====
 
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0)
-        except Exception as e:
-            print(f"❌ Ошибка: {e}")
-            print("🔄 Перезапуск через 5 секунд...")
-            time.sleep(5)
+@bot.message_handler(commands=['band'])
+def band_command(message):
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "❌ Напиши /start")
+        return
+
+    if user["band_id"] == 0:
+        bot.send_message(message.chat.id, 
+            "🏷️ *Ты не в лейбле!*\n\n"
+            "📌 Команды:\n"
+            "/band_create [название] — создать лейбл (75,000 монет)\n"
+            "/band_join [название] — вступить в лейбл\n\n"
+            "💰 Чтобы создать лейбл нужно 75,000 монет!",
+            parse_mode="Markdown")
+    else:
+        band = get_band(user["band_id"])
+        if band:
+            members = get_band_members(user["band_id"])
+            msg = f"🏷️ *{band['name']}*\n"
+            msg += f"👥 Участников: {len(members)}\n\n"
+            msg += "📌 Команды:\n"
+            msg += "/band_leave — выйти из лейбла\n"
+            msg += "/band_members — список участников"
+            bot.send_message(message.chat.id, msg, parse_mode="Markdown")
+        else:
+            bot.send_message(message.chat.id, "❌ Лейбл не найден!")
+
+@bot.message_handler(commands=['band_create'])
+def band_create_command(message):
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "❌ Напиши /start")
+        return
+
+    if user["band_id"] != 0:
+        bot.send_message(message.chat.id, "❌ Ты уже в лейбле!")
+        return
+
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        bot.send_message(message.chat.id, "❌ Формат: /band_create [название]")
+        return
+
+    name = args[1].strip()
+    if len(name) < 3 or len(name) > 20:
+        bot.send_message(message.chat.id, "❌ Название должно быть от 3 до 20 символов!")
+        return
+
+    if get_band_by_name(name):
+        bot.send_message(message.chat.id, "❌ Лейбл с таким названием уже существует!")
+        return
+
+    if user["money"] < 75000:
+        bot.send_message(message.chat.id, f"❌ Нужно 75,000 монет! У тебя {user['money']:,}")
+        return
+
+    update_money(user_id, -75000)
+    band_id = create_band(user_id, name)
+    if band_id:
+        add_xp(user_id, 100)
+        bot.send_message(message.chat.id, f"✅ Лейбл '{name}' создан! +100 XP")
+    else:
+        bot.send_message(message.chat.id, "❌ Ошибка при создании лейбла!")
+
+@bot.message_handler(commands=['band_join'])
+def band_join_command(message):
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "❌ Напиши /start")
+        return
+
+    if user["band_id"] != 0:
+        bot.send_message(message.chat.id, "❌ Ты уже в лейбле!")
+        return
+
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        bot.send_message(message.chat.id, "❌ Формат: /band_join [название лейбла]")
+        return
+
+    name = args[1].strip()
+    band = get_band_by_name(name)
+    if not band:
+        bot.send_message(message.chat.id, "❌ Лейбл не найден!")
+        return
+
+    add_member(band["band_id"], user_id)
+    add_xp(user_id, 25)
+    bot.send_message(message.chat.id, f"✅ Ты вступил в лейбл '{name}'! +25 XP")
+
+@bot.message_handler(commands=['band_leave'])
+def band_leave_command(message):
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "❌ Напиши /start")
+        return
+
+    if user["band_id"] == 0:
+        bot.send_message(message.chat.id, "❌ Ты
