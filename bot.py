@@ -3,9 +3,16 @@ import random
 import sqlite3
 import os
 import time
+import sys
+
+print("=== ШАГ 1: ИМПОРТЫ ЗАГРУЖЕНЫ ===", file=sys.stderr)
+sys.stderr.flush()
 
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
+
+print("=== ШАГ 2: ТОКЕН ЗАГРУЖЕН ===", file=sys.stderr)
+sys.stderr.flush()
 
 DB_PATH = "musicwar.db"
 
@@ -15,6 +22,8 @@ def get_db():
     return conn
 
 def init_db():
+    print("=== ШАГ 3: СОЗДАЮ БАЗУ ДАННЫХ ===", file=sys.stderr)
+    sys.stderr.flush()
     conn = get_db()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -46,7 +55,8 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("База данных создана")
+    print("=== ШАГ 4: БАЗА ДАННЫХ СОЗДАНА ===", file=sys.stderr)
+    sys.stderr.flush()
 
 def register_user(user_id, username):
     conn = get_db()
@@ -119,6 +129,9 @@ def get_rank(level):
     elif level <= 40: return "Платиновый"
     elif level <= 45: return "Бриллиантовый"
     else: return "Music Legend"
+
+print("=== ШАГ 5: ФУНКЦИИ ЗАГРУЖЕНЫ ===", file=sys.stderr)
+sys.stderr.flush()
 
 # ===== ФУНКЦИИ БАНД =====
 
@@ -203,7 +216,10 @@ def remove_member(gang_id, user_id):
     conn.close()
     return True
 
-# ===== МУЗЫКАЛЬНЫЕ БИЗНЕСЫ (ПРОВЕРЕНО) =====
+print("=== ШАГ 6: ФУНКЦИИ БАНД ЗАГРУЖЕНЫ ===", file=sys.stderr)
+sys.stderr.flush()
+
+# ===== МУЗЫКАЛЬНЫЕ БИЗНЕСЫ =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -219,6 +235,9 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
+print("=== ШАГ 7: БИЗНЕСЫ ЗАГРУЖЕНЫ ===", file=sys.stderr)
+sys.stderr.flush()
+
 def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(" Квартирник ", " Профиль ")
@@ -226,6 +245,9 @@ def main_menu():
     markup.row(" Банда ", " Донат ")
     markup.row(" Помощь ", " О боте ")
     return markup
+
+print("=== ШАГ 8: МЕНЮ ЗАГРУЖЕНО ===", file=sys.stderr)
+sys.stderr.flush()
 
 # ===== БИЗНЕСЫ С КНОПКАМИ =====
 
@@ -354,6 +376,9 @@ def close_message(call):
         message_id=call.message.message_id
     )
     bot.answer_callback_query(call.id)
+
+print("=== ШАГ 9: ОБРАБОТЧИКИ БИЗНЕСОВ ЗАГРУЖЕНЫ ===", file=sys.stderr)
+sys.stderr.flush()
 
 # ===== ОСТАЛЬНЫЕ ФУНКЦИИ =====
 
@@ -575,28 +600,4 @@ def gang_create_command(message):
 
 @bot.message_handler(commands=['gang_join'])
 def gang_join_command(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
-        return
-
-    if user["gang_id"] != 0:
-        bot.send_message(message.chat.id, "Ты уже в банде!")
-        return
-
-    args = message.text.split(maxsplit=1)
-    if len(args) < 2:
-        bot.send_message(message.chat.id, "Формат: /gang_join [название]")
-        return
-
-    name = args[1].strip()
-    gang = get_gang_by_name(name)
-    if not gang:
-        bot.send_message(message.chat.id, "Банда не найдена!")
-        return
-
-    add_member(gang["gang_id"], user_id)
-    add_xp(user_id, 25)
-    bot.send_message(message.chat.id, f"Ты вступил в банду '{name}'! +25 XP")
-
+    use
