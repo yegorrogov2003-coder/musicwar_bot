@@ -203,13 +203,14 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
+# ===== БИЗНЕСЫ (НАЗВАНИЕ #6 ИЗМЕНЕНО) =====
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
-    {"id": 3, "name": "Музыкальный магаз", "price": 300000, "income": 22000},
+    {"id": 3, "name": "Музыкальный магазин", "price": 300000, "income": 22000},
     {"id": 4, "name": "Рэп-баттл", "price": 600000, "income": 40000},
-    {"id": 5, "name": "Звукозапись", "price": 1200000, "income": 80000},
-    {"id": 6, "name": "Лейбл", "price": 3000000, "income": 200000},
+    {"id": 5, "name": "Студия записи", "price": 1200000, "income": 80000},
+    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},  # ← ИЗМЕНЕНО!
     {"id": 7, "name": "Продакшн", "price": 6000000, "income": 400000},
     {"id": 8, "name": "Ночной клуб", "price": 15000000, "income": 950000},
     {"id": 9, "name": "Радио", "price": 30000000, "income": 1900000},
@@ -222,8 +223,8 @@ def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("Квартирник", "Профиль")
     markup.row("Бизнесы", "Мои бизнесы")
-    markup.row("Группировка", "Донат")
-    markup.row("Помощь", "О боте")
+    markup.row("Группировка", "Лейбл")  # ← КНОПКА ДОБАВЛЕНА!
+    markup.row("Донат", "Помощь")
     return markup
 
 @bot.message_handler(commands=['start'])
@@ -256,7 +257,7 @@ def set_group_callback(call):
     bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(func=lambda message: message.text in ["Квартирник"])
+@bot.message_handler(func=lambda message: message.text == "Квартирник")
 def attack(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -283,7 +284,7 @@ def attack(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text in ["Профиль"])
+@bot.message_handler(func=lambda message: message.text == "Профиль")
 def profile(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -316,7 +317,7 @@ def profile(message):
         msg += f"\nБонус уровня: +{level_bonus}%"
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text in ["Бизнесы"])
+@bot.message_handler(func=lambda message: message.text == "Бизнесы")
 def show_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -364,7 +365,7 @@ def buy_business_command(message):
     add_xp(user_id, 50)
     bot.send_message(message.chat.id, f"Купил {b['name']}! +50 XP")
 
-@bot.message_handler(func=lambda message: message.text in ["Мои бизнесы"])
+@bot.message_handler(func=lambda message: message.text == "Мои бизнесы")
 def my_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -392,30 +393,18 @@ def my_businesses(message):
         response += f"\nБонус уровня: +{level_bonus}%"
     bot.send_message(message.chat.id, response)
 
-@bot.message_handler(func=lambda message: message.text in ["Группировка"])
+@bot.message_handler(func=lambda message: message.text == "Группировка")
 def group_menu(message):
     start(message)
 
-@bot.message_handler(func=lambda message: message.text in ["Донат"])
-def donate(message):
-    bot.send_message(message.chat.id, "Донат:\nКэш — 100 монет (50₽)\nКэш+ — 500 монет (200₽)\nVIP — 1000 монет (400₽)\nДля покупки напиши @SupportBot")
+# ===== ЛЕЙБЛЫ =====
 
-@bot.message_handler(func=lambda message: message.text in ["Помощь"])
-def help_command(message):
-    bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nГруппировка — выбрать группировку\nДонат — покупка Кэш")
-
-@bot.message_handler(func=lambda message: message.text in ["О боте"])
-def about(message):
-    bot.send_message(message.chat.id, "MusicWar Bot v2.0\n50 уровней\n12 бизнесов\n4 группировки")
-
-@bot.message_handler(func=lambda message: True)
-def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу или напиши /help.")
-
-# ===== ОБРАБОТЧИКИ КОМАНД ЛЕЙБЛОВ =====
+@bot.message_handler(func=lambda message: message.text == "Лейбл")
+def band_menu_button(message):
+    band_menu(message)
 
 @bot.message_handler(commands=['band'])
-def band_command(message):
+def band_menu(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -423,12 +412,16 @@ def band_command(message):
         return
 
     if user["band_id"] == 0:
-        bot.send_message(message.chat.id, "Ты не в лейбле!\nКоманды:\n/band_create [название] — создать лейбл (75,000 монет)\n/band_join [название] — вступить в лейбл")
+        bot.send_message(message.chat.id, 
+            "Ты не в лейбле!\n\n"
+            "Команды:\n"
+            "/band_create [название] — создать лейбл (75,000 монет)\n"
+            "/band_join [название] — вступить в лейбл")
     else:
         band = get_band(user["band_id"])
         if band:
             members = get_band_members(user["band_id"])
-            msg = f"Лейбл: {band['name']}\nУчастников: {len(members)}\nКоманды:\n/band_leave — выйти\n/band_members — список участников"
+            msg = f"Лейбл: {band['name']}\nУчастников: {len(members)}\n\nКоманды:\n/band_leave — выйти\n/band_members — список участников"
             bot.send_message(message.chat.id, msg)
         else:
             bot.send_message(message.chat.id, "Лейбл не найден!")
@@ -546,6 +539,18 @@ def band_members_command(message):
         if member:
             msg += f"- {member['username']}\n"
     bot.send_message(message.chat.id, msg)
+
+@bot.message_handler(func=lambda message: message.text == "Донат")
+def donate(message):
+    bot.send_message(message.chat.id, "Донат:\nКэш — 100 монет (50₽)\nКэш+ — 500 монет (200₽)\nVIP — 1000 монет (400₽)\nДля покупки напиши @SupportBot")
+
+@bot.message_handler(func=lambda message: message.text == "Помощь")
+def help_command(message):
+    bot.send_message(message.chat.id, "Помощь:\nКвартирник — заработать монеты и опыт\nПрофиль — твоя статистика\nБизнесы — магазин бизнесов\nМои бизнесы — твои бизнесы\nГруппировка — выбрать группировку\nЛейбл — создать/вступить в лейбл\nДонат — покупка Кэш")
+
+@bot.message_handler(func=lambda message: True)
+def unknown(message):
+    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу или напиши /help.")
 
 if __name__ == "__main__":
     init_db()
