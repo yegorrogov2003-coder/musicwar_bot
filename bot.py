@@ -9,7 +9,7 @@ print("=== ЗАПУСК БОТА ===")
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
 
-DB_PATH = "musicwar.db"  # ПРАВИЛЬНЫЙ ПУТЬ!
+DB_PATH = "musicwar.db"
 
 print(f"=== ПУТЬ К БД: {DB_PATH} ===")
 
@@ -22,7 +22,6 @@ def init_db():
     print("=== СОЗДАЮ ТАБЛИЦЫ ===")
     conn = get_db()
     
-    # Таблица пользователей
     conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -37,7 +36,6 @@ def init_db():
     ''')
     print("✅ Таблица users готова")
     
-    # Таблица бизнесов
     conn.execute('''
         CREATE TABLE IF NOT EXISTS businesses (
             user_id INTEGER,
@@ -49,7 +47,6 @@ def init_db():
     ''')
     print("✅ Таблица businesses готова")
     
-    # Таблица лейблов
     conn.execute('''
         CREATE TABLE IF NOT EXISTS bands (
             band_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,8 +217,6 @@ def remove_member(band_id, user_id):
     conn.close()
     return True
 
-print("=== ФУНКЦИИ ЛЕЙБЛОВ ЗАГРУЖЕНЫ ===")
-
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
@@ -247,7 +242,6 @@ def main_menu():
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    print("=== start() вызван ===")
     user_id = message.chat.id
     username = message.from_user.username or "без_юзернейма"
     register_user(user_id, username)
@@ -458,7 +452,6 @@ def group_menu(message):
 
 @bot.message_handler(func=lambda message: message.text in ["🏷️ Лейбл", "Лейбл"])
 def band_menu(message):
-    print("=== band_menu() вызван ===")
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -508,7 +501,6 @@ def band_create(call):
     bot.answer_callback_query(call.id)
 
 def band_create_name(message):
-    print("=== band_create_name() вызван ===")
     user_id = message.chat.id
     name = message.text.strip()
     user = get_user(user_id)
@@ -563,11 +555,19 @@ def band_find_name(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("band_join_"))
 def band_join(call):
-    print("=== band_join() вызван ===")
     user_id = call.from_user.id
     user = get_user(user_id)
     band_id = int(call.data.split("_")[2])
     band = get_band(band_id)
 
     if user["band_id"] != 0:
-        bot.a
+        bot.answer_callback_query(call.id, "❌ Ты уже в лейбле!")
+        return
+
+    if get_band_members_count(band_id) >= band["slots"]:
+        bot.answer_callback_query(call.id, "❌ Лейбл полон!")
+        return
+
+    add_member(band_id, user_id)
+    add_xp(user_id, 25)
+    bot.answer_callback_query(call.id, "✅
