@@ -126,11 +126,13 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
+# ===== ГРУППИРОВКА =====
+
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     start(message)
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["старт", "/start"])
+@bot.message_handler(func=lambda message: message.text.lower() in ["старт"])
 def start_rus(message):
     start(message)
 
@@ -162,22 +164,17 @@ def set_group_callback(call):
     bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(commands=['квартирник'])
-def attack_cmd(message):
-    attack(message)
+# ===== КВАРТИРНИК =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["квартирник"])
-def attack_rus(message):
-    attack(message)
-
 def attack(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "Напиши старт")
         return
     if not user["group_name"]:
-        bot.send_message(message.chat.id, "Выбери группировку через /start")
+        bot.send_message(message.chat.id, "Выбери группировку через старт")
         return
 
     income = random.randint(1000, 5000)
@@ -196,19 +193,14 @@ def attack(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(commands=['профиль'])
-def profile_cmd(message):
-    profile(message)
+# ===== ПРОФИЛЬ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["профиль"])
-def profile_rus(message):
-    profile(message)
-
 def profile(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "Напиши старт")
         return
 
     group = user["group_name"] or "не выбрана"
@@ -236,19 +228,14 @@ def profile(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(commands=['бизнесы'])
-def businesses_cmd(message):
-    businesses(message)
+# ===== БИЗНЕСЫ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["бизнесы"])
-def businesses_rus(message):
-    businesses(message)
-
 def businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "Напиши старт")
         return
 
     msg = "=== МАГАЗИН БИЗНЕСОВ ===\n\n"
@@ -257,33 +244,28 @@ def businesses(message):
         status = "ВЛАДЕЕШЬ" if owned else "НЕТ"
         msg += f"{b['id']}. {b['name']}\n"
         msg += f"   Цена: {b['price']} | Доход: {b['income']}/ч [{status}]\n\n"
-    msg += "Напиши: /купить N"
+    msg += "Напиши: купить бизнес N"
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(commands=['купить'])
-def buy_cmd(message):
-    buy(message)
+# ===== КУПИТЬ БИЗНЕС =====
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
-def buy_rus(message):
-    buy(message)
-
 def buy(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "Напиши старт")
         return
 
     try:
         parts = message.text.split()
-        if len(parts) < 2:
-            bot.send_message(message.chat.id, "Формат: /купить N или Купить бизнес N")
+        if len(parts) < 3:
+            bot.send_message(message.chat.id, "Формат: купить бизнес N")
             return
         business_id = int(parts[-1])
     except:
-        bot.send_message(message.chat.id, "Формат: /купить N или Купить бизнес N")
+        bot.send_message(message.chat.id, "Формат: купить бизнес N")
         return
 
     if business_id < 1 or business_id > len(BUSINESSES):
@@ -304,19 +286,14 @@ def buy(message):
     add_xp(user_id, 50)
     bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
-@bot.message_handler(commands=['моибизнесы'])
-def mybusiness_cmd(message):
-    mybusiness(message)
+# ===== МОИ БИЗНЕСЫ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["мои бизнесы"])
-def mybusiness_rus(message):
-    mybusiness(message)
-
 def mybusiness(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши /start")
+        bot.send_message(message.chat.id, "Напиши старт")
         return
 
     businesses = get_user_businesses(user_id)
@@ -339,55 +316,33 @@ def mybusiness(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(commands=['банда'])
-def gang_cmd(message):
-    gang(message)
+# ===== БАНДА =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["банда"])
-def gang_rus(message):
-    gang(message)
-
 def gang(message):
     bot.send_message(message.chat.id,
         "=== БАНДА ===\n\n"
         "Функция в разработке!\n"
-        "Скоро здесь появится создание и управление бандами.\n\n"
-        "Команды:\n"
-        "/банда — информация\n"
-        "/создать_банду [название] — создать банду\n"
-        "/вступить_в_банду [название] — вступить в банду")
+        "Скоро здесь появится создание и управление бандами.")
 
-@bot.message_handler(commands=['создать_банду'])
-def create_gang_cmd(message):
-    bot.send_message(message.chat.id, "Функция создания банды скоро появится!")
-
-@bot.message_handler(commands=['вступить_в_банду'])
-def join_gang_cmd(message):
-    bot.send_message(message.chat.id, "Функция вступления в банду скоро появится!")
-
-@bot.message_handler(commands=['помощь'])
-def help_cmd(message):
-    help_msg(message)
+# ===== ПОМОЩЬ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["помощь"])
-def help_rus(message):
-    help_msg(message)
-
 def help_msg(message):
     bot.send_message(message.chat.id,
         "=== ПОМОЩЬ ===\n\n"
-        "/start или старт — регистрация\n"
-        "/профиль или профиль — твоя статистика\n"
-        "/квартирник или квартирник — заработать монеты\n"
-        "/бизнесы или бизнесы — магазин бизнесов\n"
-        "/купить N или купить бизнес N — купить бизнес\n"
-        "/моибизнесы или мои бизнесы — твои бизнесы\n"
-        "/банда или банда — управление бандой\n"
-        "/помощь или помощь — это меню")
+        "старт — регистрация\n"
+        "профиль — твоя статистика\n"
+        "квартирник — заработать монеты\n"
+        "бизнесы — магазин бизнесов\n"
+        "купить бизнес N — купить бизнес\n"
+        "мои бизнесы — твои бизнесы\n"
+        "банда — управление бандой (скоро)\n"
+        "помощь — это меню")
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Напиши /помощь")
+    bot.send_message(message.chat.id, "Неизвестная команда. Напиши помощь")
 
 if __name__ == "__main__":
     init_db()
