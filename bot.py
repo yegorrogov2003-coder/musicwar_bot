@@ -3,7 +3,6 @@ import random
 import sqlite3
 import os
 import time
-import threading
 
 TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
 bot = telebot.TeleBot(TOKEN)
@@ -309,13 +308,11 @@ def help_command(message):
 def unknown(message):
     bot.send_message(message.chat.id, "Неизвестная команда. Напиши /помощь")
 
-# ===== ЗАПУСК ПОЛЛИНГА + ПОРТ ДЛЯ RENDER =====
 if __name__ == "__main__":
     init_db()
     print("БОТ ЗАПУЩЕН!")
     print("MusicWar Bot готов к работе!")
-    
-    # Запускаем бота
+
     while True:
         try:
             bot.polling(none_stop=True, interval=0)
