@@ -19,6 +19,8 @@ def get_db():
     return conn
 
 def init_db():
+    print("=== СОЗДАЮ БАЗУ ДАННЫХ ===", file=sys.stderr)
+    sys.stderr.flush()
     conn = get_db()
     conn.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -50,7 +52,8 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-    print("База данных создана")
+    print("=== БАЗА ДАННЫХ СОЗДАНА ===", file=sys.stderr)
+    sys.stderr.flush()
 
 def register_user(user_id, username):
     conn = get_db()
@@ -361,7 +364,7 @@ def show_businesses(message):
         status = "ВЛАДЕЕШЬ" if owned else "НЕТ"
         msg += f"{b['id']}. {b['name']}\n"
         msg += f"   Цена: {b['price']} | Доход: {b['income']}/ч [{status}]\n\n"
-    msg += "📌 Напиши: Купить бизнес N"
+    msg += "Напиши: Купить бизнес N"
 
     bot.send_message(message.chat.id, msg)
 
@@ -605,7 +608,4 @@ def about(message):
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу или напиши /help.")
-
-if __name__ == "__main__":
-    init
+    bot.send_m
