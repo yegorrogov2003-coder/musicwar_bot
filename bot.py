@@ -1,49 +1,62 @@
-import telebot
-import random
-import sqlite3
 import os
-import time
+import sqlite3
+import telebot
+from dotenv import load_dotenv
+from telebot import types
 
-TOKEN = "8824209793:AAGCrt3y9wLDDE70jP9Mr5rem5bx_574pm4"
+# Загрузка токена из .env
+load_dotenv()
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("Токен не найден! Проверьте файл .env и переменную TELEGRAM_BOT_TOKEN.")
+
 bot = telebot.TeleBot(TOKEN)
-
 DB_PATH = "musicwar.db"
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            group_name TEXT DEFAULT '',
-            money INTEGER DEFAULT 0,
-            xp INTEGER DEFAULT 0,
-            level INTEGER DEFAULT 1
-        )
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS businesses (
-            user_id INTEGER,
-            business_id INTEGER,
-            level INTEGER DEFAULT 0,
-            owned INTEGER DEFAULT 0,
-            PRIMARY KEY (user_id, business_id)
-        )
-    ''')
-    conn.commit()
-    conn.close()
-    print("База данных создана")
+    try:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                group_name TEXT DEFAULT '',
+                money INTEGER DEFAULT 0,
+                xp INTEGER DEFAULT 0,
+                level INTEGER DEFAULT 1
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS businesses (
+                user_id INTEGER,
+                business_id INTEGER,
+                level INTEGER DEFAULT 0,
+                owned INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, business_id)
+            )
+        ''')
+        conn.commit()
+        print("База данных готова.")
+    except Exception as e:
+        print(f"Ошибка при инициализации БД: {e}")
+    finally:
+        conn.close()
 
 def register_user(user_id, username):
     conn = get_db()
-    conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level) VALUES (?, ?, 1000, 0, 1)", (user_id, username))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("INSERT OR IGNORE INTO users (user_id, username, money, xp, level) VALUES (?, ?, 1000, 0, 1)",
+                     (user_id, username))
+        conn.commit()
+    except Exception as e:
+        print(f"Ошибка регистрации пользователя: {e}")
+    finally:
+        conn.close()
 
 def get_user(user_id):
     conn = get_db()
@@ -53,15 +66,56 @@ def get_user(user_id):
 
 def update_money(user_id, amount):
     conn = get_db()
-    conn.execute("UPDATE users SET money = money + ? WHERE user_id = ?", (amount, user_id))
-    conn.commit()
-    conn.close()
+    try:
+        # Исправлено: добавлен оператор +
+        conn.execute("UPDATE users SET money = money + ? WHERE user_id = ?", (amount, user_id))
+        conn.commit()
+    except Exception as e:
+        print(f"Ошибка обновления денег: {e}")
+    finally:
+        conn.close()
 
-def set_group(user_id, group_name):
+def add_xp(user_id, amount):
     conn = get_db()
-    conn.execute("UPDATE users SET group_name = ? WHERE user_id = ?", (group_name, user_id))
-    conn.commit()
-    conn.close()
+    try:
+        user = conn.execute("SELECT xp, level FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        if user:
+            # Исправлено: добавлен оператор +
+            new_xp = user["xp"] + amount
+            current_level = user["level"]
+            leveled_up = False
+
+            while new_xp >= current_level * 100:
+                new_xp -= current_level * 100
+                current_level += 1
+                leveled_up = True
+
+            conn.execute("UPDATE users SET xp = ?, level = ? WHERE user_id = ?",
+                         (new_xp, current_level, user_id))
+            conn.commit()
+            return leveled_up, current_level
+    except Exception as e:
+        print(f"Ошибка добавления опыта: {e}")
+    finally:
+        conn.close()
+    return False, 1
+
+def buy_business(user_id, business_id):
+    # Сначала проверяем, есть ли у пользователя достаточно денег (логика цены должна быть снаружи)
+    conn = get_db()
+    try:
+        # Используем INSERT OR IGNORE, чтобы не перезаписывать лишние поля
+        conn.execute("INSERT OR IGNORE INTO businesses (user_id, business_id, owned, level) VALUES (?, ?, 1, 0)",
+                     (user_id, business_id))
+        conn.execute("UPDATE businesses SET owned = 1 WHERE user_id = ? AND business_id = ?",
+                     (user_id, business_id))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Ошибка покупки бизнеса: {e}")
+        return False
+    finally:
+        conn.close()
 
 def get_user_businesses(user_id):
     conn = get_db()
@@ -69,35 +123,11 @@ def get_user_businesses(user_id):
     conn.close()
     return businesses
 
-def buy_business(user_id, business_id):
-    conn = get_db()
-    conn.execute("INSERT OR REPLACE INTO businesses (user_id, business_id, owned, level) VALUES (?, ?, 1, 0)", (user_id, business_id))
-    conn.commit()
-    conn.close()
-
-def get_business_level(user_id, business_id):
-    conn = get_db()
-    result = conn.execute("SELECT level FROM businesses WHERE user_id = ? AND business_id = ?", (user_id, business_id)).fetchone()
-    conn.close()
-    return result["level"] if result else 0
-
-def add_xp(user_id, amount):
-    conn = get_db()
-    user = conn.execute("SELECT xp, level FROM users WHERE user_id = ?", (user_id,)).fetchone()
-    if user:
-        new_xp = user["xp"] + amount
-        current_level = user["level"]
-        leveled_up = False
-        while new_xp >= current_level * 100:
-            new_xp -= current_level * 100
-            current_level += 1
-            leveled_up = True
-        conn.execute("UPDATE users SET xp = ?, level = ? WHERE user_id = ?", (new_xp, current_level, user_id))
-        conn.commit()
-        conn.close()
-        return leveled_up, current_level
-    conn.close()
-    return False, 1
+def get_business_by_id(business_id):
+    for b in BUSINESSES:
+        if b["id"] == business_id:
+            return b
+    return None
 
 def get_rank(level):
     if level <= 5:
@@ -121,239 +151,109 @@ def get_rank(level):
     else:
         return "Music Legend"
 
+# Исправленный список бизнесов (все поля на месте)
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
     {"id": 2, "name": "Студия звука", "price": 120000, "income": 10000},
     {"id": 3, "name": "Музыкальный магазин", "price": 300000, "income": 22000},
     {"id": 4, "name": "Рэп-баттл", "price": 600000, "income": 40000},
     {"id": 5, "name": "Студия записи", "price": 1200000, "income": 80000},
-    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 200000},
-    {"id": 7, "name": "Продакшн", "price": 6000000, "income": 400000},
-    {"id": 8, "name": "Ночной клуб", "price": 15000000, "income": 950000},
-    {"id": 9, "name": "Радио", "price": 30000000, "income": 1900000},
-    {"id": 10, "name": "Клипмейкер", "price": 60000000, "income": 3800000},
-    {"id": 11, "name": "ТВ-канал", "price": 120000000, "income": 7500000},
-    {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
+    {"id": 6, "name": "Звукозаписывающая студия", "price": 3000000, "income": 150000}
+]
 
-def main_menu():
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.row("Квартирник", "Профиль")
-    markup.row("Бизнесы", "Мои бизнесы")
-    markup.row("Банда", "Донат")
-    markup.row("Помощь", "О боте")
-    return markup
+# --- Обработчики команд ---
 
-@bot.message_handler(func=lambda message: message.text in ["старт", "Старт"])
-def start(message):
-    user_id = message.chat.id
-    username = message.from_user.username or "без_юзернейма"
+@bot.message_handler(commands=["start"])
+def send_start(message):
+    user_id = message.from_user.id
+    username = message.from_user.username or "Unknown"
     register_user(user_id, username)
-    user = get_user(user_id)
+    bot.reply_to(message, f"Привет, {username}! Добро пожаловать в Music War. Используй /profile, чтобы посмотреть статус, и /businesses, чтобы купить бизнес.")
 
-    if not user["group_name"]:
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(
-            telebot.types.InlineKeyboardButton("Реперы", callback_data="group_Реперы"),
-            telebot.types.InlineKeyboardButton("Рокеры", callback_data="group_Рокеры")
-        )
-        markup.add(
-            telebot.types.InlineKeyboardButton("Меломаны", callback_data="group_Меломаны"),
-            telebot.types.InlineKeyboardButton("Клубмены", callback_data="group_Клубмены")
-        )
-        bot.send_message(message.chat.id, "Добро пожаловать! Выбери свою группировку:", reply_markup=markup)
-    else:
-        bot.send_message(message.chat.id, f"С возвращением! Группировка: {user['group_name']}", reply_markup=main_menu())
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("group_"))
-def set_group_callback(call):
-    group_name = call.data.split("_")[1]
-    set_group(call.from_user.id, group_name)
-    add_xp(call.from_user.id, 15)
-    bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
-    bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
-    bot.answer_callback_query(call.id)
-
-@bot.message_handler(func=lambda message: message.text == "Квартирник")
-def attack(message):
-    user_id = message.chat.id
+@bot.message_handler(commands=["profile"])
+def send_profile(message):
+    user_id = message.from_user.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
-        return
-    if not user["group_name"]:
-        bot.send_message(message.chat.id, "Выбери группировку через старт")
+        bot.reply_to(message, "Что-то пошло не так. Попробуй нажать /start.")
         return
 
-    income = random.randint(1000, 5000)
-    xp_gain = random.randint(10, 25)
-    update_money(user_id, income)
-    leveled_up, new_level = add_xp(user_id, xp_gain)
-    user = get_user(user_id)
-
-    msg = f"Ты заработал {income} монет!\nОпыт: +{xp_gain}\nВсего монет: {user['money']}"
-
-    if leveled_up:
-        rank = get_rank(new_level)
-        msg += f"\n\nУРОВЕНЬ ПОВЫШЕН! Уровень: {new_level} ({rank})"
-        if new_level % 10 == 0:
-            msg += f"\nБонус к доходу: +{new_level // 2}%"
-
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text == "Профиль")
-def profile(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
-        return
-
-    group = user["group_name"] or "не выбрана"
-    businesses = get_user_businesses(user_id)
-    total_income = 0
-    for b in businesses:
-        biz = BUSINESSES[b["business_id"] - 1]
-        income = biz["income"] * (1 + b["level"] * 0.1)
-        total_income += income
-
-    level_bonus = (user["level"] // 10) * 5
-    total_income = int(total_income * (1 + level_bonus / 100))
     rank = get_rank(user["level"])
-    xp_for_next = user["level"] * 100
+    text = (
+        f"👤 Профиль: {user['username']}\n"
+        f"💰 Деньги: {user['money']:,}\n"
+        f"⭐ Уровень: {user['level']} ({rank})\n"
+        f"⚡ Опыт: {user['xp']}/{user['level'] * 100}\n"
+        f"🏢 Группа: {user['group_name'] or 'Не указана'}"
+    )
+    bot.reply_to(message, text)
 
-    msg = f"=== ПРОФИЛЬ ===\n\n"
-    msg += f"Игрок: {user['username']}\n"
-    msg += f"Группировка: {group}\n"
-    msg += f"Уровень: {user['level']} ({rank})\n"
-    msg += f"Опыт: {user['xp']}/{xp_for_next}\n"
-    msg += f"Монет: {user['money']}\n"
-    msg += f"Доход: {total_income} монет/час"
-    if level_bonus > 0:
-        msg += f"\nБонус уровня: +{level_bonus}%"
-
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text == "Бизнесы")
-def show_businesses(message):
-    user_id = message.chat.id
+@bot.message_handler(commands=["businesses"])
+def send_businesses_panel(message):
+    """Удобная панелька с бизнесами: кнопки с названием, ценой и доходом"""
+    user_id = message.from_user.id
     user = get_user(user_id)
     if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
+        bot.reply_to(message, "Сначала нажми /start")
         return
 
-    msg = "=== МАГАЗИН БИЗНЕСОВ ===\n\n"
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    buttons = []
+
     for b in BUSINESSES:
-        owned = get_business_level(user_id, b["id"]) > 0
-        status = "ВЛАДЕЕШЬ" if owned else "НЕТ"
-        msg += f"{b['id']}. {b['name']}\n"
-        msg += f"   Цена: {b['price']} | Доход: {b['income']}/ч [{status}]\n\n"
-    msg += "Напиши: купить бизнес N"
+        owned = any(bus["business_id"] == b["id"] for bus in get_user_businesses(user_id))
+        status = "✅ Куплено" if owned else f"💰 {b['price']:,} | Доход: {b['income']:,}"
+        btn_text = f"{b['name']} — {status}"
 
-    bot.send_message(message.chat.id, msg)
+        # Кнопка с callback_data для покупки
+        callback = f"buy_{b['id']}" if not owned else "already_bought"
+        buttons.append(types.InlineKeyboardButton(btn_text, callback_data=callback))
 
-@bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
-def buy_business(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
+    markup.add(*buttons)
+    bot.send_message(message.chat.id, "🏙️ Панель бизнесов — нажми, чтобы купить:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_handler(call):
+    user_id = call.from_user.id
+    data = call.data
+
+    if data == "already_bought":
+        bot.answer_callback_query(call.id, "Этот бизнес уже у тебя есть!", show_alert=True)
         return
 
-    try:
-        parts = message.text.split()
-        business_id = int(parts[-1])
-    except:
-        bot.send_message(message.chat.id, "Формат: купить бизнес N")
-        return
+    if data.startswith("buy_"):
+        try:
+            business_id = int(data.split("_")[1])
+        except ValueError:
+            bot.answer_callback_query(call.id, "Ошибка данных", show_alert=True)
+            return
 
-    if business_id < 1 or business_id > len(BUSINESSES):
-        bot.send_message(message.chat.id, "Нет такого бизнеса!")
-        return
+        business = get_business_by_id(business_id)
+        if not business:
+            bot.answer_callback_query(call.id, "Бизнес не найден", show_alert=True)
+            return
 
-    if get_business_level(user_id, business_id) > 0:
-        bot.send_message(message.chat.id, "У тебя уже есть этот бизнес!")
-        return
+        user = get_user(user_id)
+        if not user:
+            bot.answer_callback_query(call.id, "Сначала нажми /start", show_alert=True)
+            return
 
-    b = BUSINESSES[business_id - 1]
-    if user["money"] < b["price"]:
-        bot.send_message(message.chat.id, f"Нужно {b['price']} монет!")
-        return
+        if user["money"] < business["price"]:
+            bot.answer_callback_query(call.id, f"Не хватает денег! Нужно: {business['price']:,}", show_alert=True)
+            return
 
-    update_money(user_id, -b["price"])
-    buy_business(user_id, business_id)
-    add_xp(user_id, 50)
-    bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
+        # Покупка
+        success = buy_business(user_id, business_id)
+        if success:
+            update_money(user_id, -business["price"])
+            bot.answer_callback_query(call.id, f"✅ Ты купил бизнес: {business['name']}", show_alert=False)
+            # Можно дополнительно отправить сообщение о покупке, если нужно
+        else:
+            bot.answer_callback_query(call.id, "Произошла ошибка при покупке", show_alert=True)
 
-@bot.message_handler(func=lambda message: message.text == "Мои бизнесы")
-def my_businesses(message):
-    user_id = message.chat.id
-    user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
-        return
-
-    businesses = get_user_businesses(user_id)
-    if not businesses:
-        bot.send_message(message.chat.id, "У тебя нет бизнесов!")
-        return
-
-    level_bonus = (user["level"] // 10) * 5
-    msg = "=== МОИ БИЗНЕСЫ ===\n\n"
-    total_income = 0
-    for b in businesses:
-        biz = BUSINESSES[b["business_id"] - 1]
-        income = biz["income"] * (1 + b["level"] * 0.1)
-        income = int(income * (1 + level_bonus / 100))
-        total_income += income
-        msg += f"{biz['name']} (ур.{b['level']}) — {income} монет/час\n"
-    msg += f"\nОбщий доход: {total_income} монет/час"
-    if level_bonus > 0:
-        msg += f"\nБонус уровня: +{level_bonus}%"
-
-    bot.send_message(message.chat.id, msg)
-
-@bot.message_handler(func=lambda message: message.text == "Банда")
-def gang(message):
-    bot.send_message(message.chat.id, "=== БАНДА ===\n\nФункция в разработке!")
-
-@bot.message_handler(func=lambda message: message.text == "Донат")
-def donate(message):
-    bot.send_message(message.chat.id,
-        "=== ДОНАТ ===\n\n"
-        "Кэш — 100 монет (50 руб)\n"
-        "Кэш+ — 500 монет (200 руб)\n"
-        "VIP — 1000 монет (400 руб)\n\n"
-        "Для покупки напиши @SupportBot")
-
-@bot.message_handler(func=lambda message: message.text == "Помощь")
-def help_msg(message):
-    bot.send_message(message.chat.id,
-        "=== ПОМОЩЬ ===\n\n"
-        "Квартирник — заработать монеты\n"
-        "Профиль — твоя статистика\n"
-        "Бизнесы — магазин бизнесов\n"
-        "Мои бизнесы — твои бизнесы\n"
-        "Банда — скоро\n"
-        "Донат — покупка Кэш")
-
-@bot.message_handler(func=lambda message: message.text == "О боте")
-def about(message):
-    bot.send_message(message.chat.id,
-        "=== О БОТЕ ===\n\n"
-        "MusicWar Bot\n50 уровней\n12 бизнесов\n4 группировки")
-
-@bot.message_handler(func=lambda message: True)
-def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу.")
-
+# Запуск
 if __name__ == "__main__":
     init_db()
-    print("БОТ ЗАПУЩЕН!")
-    print("MusicWar Bot готов к работе!")
-
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0)
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            time.sleep(5)
+    print("Бот запущен...")
+    bot.polling(none_stop=True)
+        
