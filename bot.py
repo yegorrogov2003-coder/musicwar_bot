@@ -100,16 +100,26 @@ def add_xp(user_id, amount):
     return False, 1
 
 def get_rank(level):
-    if level <= 5: return "Новичок"
-    elif level <= 10: return "Андеграунд"
-    elif level <= 15: return "Хип-хопер"
-    elif level <= 20: return "Прорыв"
-    elif level <= 25: return "Известный"
-    elif level <= 30: return "Популярный"
-    elif level <= 35: return "Топ-чарт"
-    elif level <= 40: return "Платиновый"
-    elif level <= 45: return "Бриллиантовый"
-    else: return "Music Legend"
+    if level <= 5:
+        return "Новичок"
+    elif level <= 10:
+        return "Андеграунд"
+    elif level <= 15:
+        return "Хип-хопер"
+    elif level <= 20:
+        return "Прорыв"
+    elif level <= 25:
+        return "Известный"
+    elif level <= 30:
+        return "Популярный"
+    elif level <= 35:
+        return "Топ-чарт"
+    elif level <= 40:
+        return "Платиновый"
+    elif level <= 45:
+        return "Бриллиантовый"
+    else:
+        return "Music Legend"
 
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "price": 50000, "income": 5000},
@@ -124,7 +134,6 @@ BUSINESSES = [
     {"id": 10, "name": "Клипмейкер", "price": 60000000, "income": 3800000},
     {"id": 11, "name": "ТВ-канал", "price": 120000000, "income": 7500000},
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
-]
 
 def main_menu():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -134,7 +143,7 @@ def main_menu():
     markup.row("Помощь", "О боте")
     return markup
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["старт"])
+@bot.message_handler(func=lambda message: message.text in ["старт", "Старт"])
 def start(message):
     user_id = message.chat.id
     username = message.from_user.username or "без_юзернейма"
@@ -232,123 +241,48 @@ def show_businesses(message):
         bot.send_message(message.chat.id, "Напиши старт")
         return
 
-    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    msg = "=== МАГАЗИН БИЗНЕСОВ ===\n\n"
     for b in BUSINESSES:
         owned = get_business_level(user_id, b["id"]) > 0
-        status = "✅" if owned else ""
-        markup.add(telebot.types.InlineKeyboardButton(
-            f"{b['id']}. {b['name']} {status}",
-            callback_data=f"biz_{b['id']}"
-        ))
+        status = "ВЛАДЕЕШЬ" if owned else "НЕТ"
+        msg += f"{b['id']}. {b['name']}\n"
+        msg += f"   Цена: {b['price']} | Доход: {b['income']}/ч [{status}]\n\n"
+    msg += "Напиши: купить бизнес N"
 
-    bot.send_message(message.chat.id,
-        "=== МАГАЗИН БИЗНЕСОВ ===\n"
-        "Нажми на бизнес для просмотра:",
-        reply_markup=markup)
+    bot.send_message(message.chat.id, msg)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("biz_"))
-def show_business_card(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    business_id = int(call.data.split("_")[1])
-    biz = BUSINESSES[business_id - 1]
-
-    owned = get_business_level(user_id, business_id) > 0
-    level = get_business_level(user_id, business_id)
-
-    msg = f"=== {biz['name']} ===\n\n"
-    msg += f"💰 Цена: {biz['price']} монет\n"
-    msg += f"📈 Доход: {biz['income']} монет/час\n"
-    if owned:
-        msg += f"📊 Уровень: {level}\n"
-        msg += f"✅ Статус: ВЛАДЕЕШЬ\n"
-    else:
-        msg += f"❌ Статус: НЕТ\n"
-
-    markup = telebot.types.InlineKeyboardMarkup()
-    if not owned:
-        markup.add(telebot.types.InlineKeyboardButton("💰 Купить", callback_data=f"buy_{business_id}"))
-    markup.add(telebot.types.InlineKeyboardButton("⬅️ Назад к списку", callback_data="back_to_businesses"))
-    markup.add(telebot.types.InlineKeyboardButton("❌ Закрыть", callback_data="close"))
-
-    bot.edit_message_text(
-        msg,
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        reply_markup=markup
-    )
-    bot.answer_callback_query(call.id)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
-def buy_business_callback(call):
-    user_id = call.from_user.id
-    user = get_user(user_id)
-    business_id = int(call.data.split("_")[1])
-    biz = BUSINESSES[business_id - 1]
-
-    if get_business_level(user_id, business_id) > 0:
-        bot.answer_callback_query(call.id, "У тебя уже есть этот бизнес!")
-        return
-
-    if user["money"] < biz["price"]:
-        bot.answer_callback_query(call.id, f"Нужно {biz['price']} монет! У тебя {user['money']}")
-        return
-
-    update_money(user_id, -biz["price"])
-    buy_business(user_id, business_id)
-    add_xp(user_id, 50)
-
-    bot.answer_callback_query(call.id, f"Куплен: {biz['name']}! +50 XP")
-
-    msg = f"=== {biz['name']} ===\n\n"
-    msg += f"💰 Цена: {biz['price']} монет\n"
-    msg += f"📈 Доход: {biz['income']} монет/час\n"
-    msg += f"✅ Статус: ВЛАДЕЕШЬ\n"
-
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("⬅️ Назад к списку", callback_data="back_to_businesses"))
-    markup.add(telebot.types.InlineKeyboardButton("❌ Закрыть", callback_data="close"))
-
-    bot.edit_message_text(
-        msg,
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        reply_markup=markup
-    )
-
-@bot.callback_query_handler(func=lambda call: call.data == "back_to_businesses")
-def back_to_businesses(call):
-    user_id = call.from_user.id
+@bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
+def buy_business(message):
+    user_id = message.chat.id
     user = get_user(user_id)
     if not user:
-        bot.answer_callback_query(call.id)
+        bot.send_message(message.chat.id, "Напиши старт")
         return
 
-    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    for b in BUSINESSES:
-        owned = get_business_level(user_id, b["id"]) > 0
-        status = "✅" if owned else ""
-        markup.add(telebot.types.InlineKeyboardButton(
-            f"{b['id']}. {b['name']} {status}",
-            callback_data=f"biz_{b['id']}"
-        ))
+    try:
+        parts = message.text.split()
+        business_id = int(parts[-1])
+    except:
+        bot.send_message(message.chat.id, "Формат: купить бизнес N")
+        return
 
-    bot.edit_message_text(
-        "=== МАГАЗИН БИЗНЕСОВ ===\n"
-        "Нажми на бизнес для просмотра:",
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        reply_markup=markup
-    )
-    bot.answer_callback_query(call.id)
+    if business_id < 1 or business_id > len(BUSINESSES):
+        bot.send_message(message.chat.id, "Нет такого бизнеса!")
+        return
 
-@bot.callback_query_handler(func=lambda call: call.data == "close")
-def close_message(call):
-    bot.delete_message(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id
-    )
-    bot.answer_callback_query(call.id)
+    if get_business_level(user_id, business_id) > 0:
+        bot.send_message(message.chat.id, "У тебя уже есть этот бизнес!")
+        return
+
+    b = BUSINESSES[business_id - 1]
+    if user["money"] < b["price"]:
+        bot.send_message(message.chat.id, f"Нужно {b['price']} монет!")
+        return
+
+    update_money(user_id, -b["price"])
+    buy_business(user_id, business_id)
+    add_xp(user_id, 50)
+    bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
 @bot.message_handler(func=lambda message: message.text == "Мои бизнесы")
 def my_businesses(message):
@@ -380,10 +314,7 @@ def my_businesses(message):
 
 @bot.message_handler(func=lambda message: message.text == "Банда")
 def gang(message):
-    bot.send_message(message.chat.id,
-        "=== БАНДА ===\n\n"
-        "Функция в разработке!\n"
-        "Скоро здесь появится создание и управление бандами.")
+    bot.send_message(message.chat.id, "=== БАНДА ===\n\nФункция в разработке!")
 
 @bot.message_handler(func=lambda message: message.text == "Донат")
 def donate(message):
@@ -400,7 +331,7 @@ def help_msg(message):
         "=== ПОМОЩЬ ===\n\n"
         "Квартирник — заработать монеты\n"
         "Профиль — твоя статистика\n"
-        "Бизнесы — магазин бизнесов (с кнопками)\n"
+        "Бизнесы — магазин бизнесов\n"
         "Мои бизнесы — твои бизнесы\n"
         "Банда — скоро\n"
         "Донат — покупка Кэш")
@@ -409,10 +340,7 @@ def help_msg(message):
 def about(message):
     bot.send_message(message.chat.id,
         "=== О БОТЕ ===\n\n"
-        "MusicWar Bot\n"
-        "50 уровней\n"
-        "12 бизнесов\n"
-        "4 группировки")
+        "MusicWar Bot\n50 уровней\n12 бизнесов\n4 группировки")
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
