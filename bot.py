@@ -126,8 +126,6 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
-# ===== ГРУППИРОВКА (ТОЛЬКО ПРИ РЕГИСТРАЦИИ) =====
-
 @bot.message_handler(func=lambda message: message.text.lower() in ["старт"])
 def start(message):
     user_id = message.chat.id
@@ -156,8 +154,6 @@ def set_group_callback(call):
     add_xp(call.from_user.id, 15)
     bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
     bot.answer_callback_query(call.id)
-
-# ===== ОСТАЛЬНЫЕ КОМАНДЫ (БЕЗ ПАНЕЛИ) =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["квартирник"])
 def attack(message):
