@@ -126,7 +126,7 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
-# ===== ГРУППИРОВКА =====
+# ===== ГРУППИРОВКА (ТОЛЬКО ПРИ РЕГИСТРАЦИИ) =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["старт"])
 def start(message):
@@ -157,7 +157,7 @@ def set_group_callback(call):
     bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
     bot.answer_callback_query(call.id)
 
-# ===== КВАРТИРНИК =====
+# ===== ОСТАЛЬНЫЕ КОМАНДЫ (БЕЗ ПАНЕЛИ) =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["квартирник"])
 def attack(message):
@@ -185,8 +185,6 @@ def attack(message):
             msg += f"\nБонус к доходу: +{new_level // 2}%"
 
     bot.send_message(message.chat.id, msg)
-
-# ===== ПРОФИЛЬ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["профиль"])
 def profile(message):
@@ -221,8 +219,6 @@ def profile(message):
 
     bot.send_message(message.chat.id, msg)
 
-# ===== БИЗНЕСЫ =====
-
 @bot.message_handler(func=lambda message: message.text.lower() in ["бизнесы"])
 def businesses(message):
     user_id = message.chat.id
@@ -240,8 +236,6 @@ def businesses(message):
     msg += "Напиши: купить бизнес N"
 
     bot.send_message(message.chat.id, msg)
-
-# ===== КУПИТЬ БИЗНЕС =====
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
 def buy(message):
@@ -279,8 +273,6 @@ def buy(message):
     add_xp(user_id, 50)
     bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
-# ===== МОИ БИЗНЕСЫ =====
-
 @bot.message_handler(func=lambda message: message.text.lower() in ["мои бизнесы"])
 def mybusiness(message):
     user_id = message.chat.id
@@ -309,16 +301,12 @@ def mybusiness(message):
 
     bot.send_message(message.chat.id, msg)
 
-# ===== БАНДА =====
-
 @bot.message_handler(func=lambda message: message.text.lower() in ["банда"])
 def gang(message):
     bot.send_message(message.chat.id,
         "=== БАНДА ===\n\n"
         "Функция в разработке!\n"
         "Скоро здесь появится создание и управление бандами.")
-
-# ===== ПОМОЩЬ =====
 
 @bot.message_handler(func=lambda message: message.text.lower() in ["помощь"])
 def help_msg(message):
