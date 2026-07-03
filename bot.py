@@ -277,7 +277,6 @@ def buy(message):
         return
 
     try:
-        # Парсим число из сообщения
         parts = message.text.split()
         if len(parts) < 2:
             bot.send_message(message.chat.id, "Формат: /купить N или Купить бизнес N")
