@@ -126,6 +126,14 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
+def main_menu():
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("Квартирник", "Профиль")
+    markup.row("Бизнесы", "Мои бизнесы")
+    markup.row("Банда", "Донат")
+    markup.row("Помощь", "О боте")
+    return markup
+
 @bot.message_handler(func=lambda message: message.text.lower() in ["старт"])
 def start(message):
     user_id = message.chat.id
@@ -145,7 +153,7 @@ def start(message):
         )
         bot.send_message(message.chat.id, "Добро пожаловать! Выбери свою группировку:", reply_markup=markup)
     else:
-        bot.send_message(message.chat.id, f"С возвращением! Группировка: {user['group_name']}")
+        bot.send_message(message.chat.id, f"С возвращением! Группировка: {user['group_name']}", reply_markup=main_menu())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("group_"))
 def set_group_callback(call):
@@ -153,9 +161,10 @@ def set_group_callback(call):
     set_group(call.from_user.id, group_name)
     add_xp(call.from_user.id, 15)
     bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+    bot.send_message(call.message.chat.id, "Используй кнопки внизу:", reply_markup=main_menu())
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["квартирник"])
+@bot.message_handler(func=lambda message: message.text == "Квартирник")
 def attack(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -182,7 +191,7 @@ def attack(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["профиль"])
+@bot.message_handler(func=lambda message: message.text == "Профиль")
 def profile(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -215,62 +224,134 @@ def profile(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["бизнесы"])
-def businesses(message):
+@bot.message_handler(func=lambda message: message.text == "Бизнесы")
+def show_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "Напиши старт")
         return
 
-    msg = "=== МАГАЗИН БИЗНЕСОВ ===\n\n"
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     for b in BUSINESSES:
         owned = get_business_level(user_id, b["id"]) > 0
-        status = "ВЛАДЕЕШЬ" if owned else "НЕТ"
-        msg += f"{b['id']}. {b['name']}\n"
-        msg += f"   Цена: {b['price']} | Доход: {b['income']}/ч [{status}]\n\n"
-    msg += "Напиши: купить бизнес N"
+        status = "✅" if owned else ""
+        markup.add(telebot.types.InlineKeyboardButton(
+            f"{b['id']}. {b['name']} {status}",
+            callback_data=f"biz_{b['id']}"
+        ))
 
-    bot.send_message(message.chat.id, msg)
+    bot.send_message(message.chat.id,
+        "=== МАГАЗИН БИЗНЕСОВ ===\n"
+        "Нажми на бизнес для просмотра:",
+        reply_markup=markup)
 
-@bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
-def buy(message):
-    user_id = message.chat.id
+@bot.callback_query_handler(func=lambda call: call.data.startswith("biz_"))
+def show_business_card(call):
+    user_id = call.from_user.id
     user = get_user(user_id)
-    if not user:
-        bot.send_message(message.chat.id, "Напиши старт")
-        return
+    business_id = int(call.data.split("_")[1])
+    biz = BUSINESSES[business_id - 1]
 
-    try:
-        parts = message.text.split()
-        if len(parts) < 3:
-            bot.send_message(message.chat.id, "Формат: купить бизнес N")
-            return
-        business_id = int(parts[-1])
-    except:
-        bot.send_message(message.chat.id, "Формат: купить бизнес N")
-        return
+    owned = get_business_level(user_id, business_id) > 0
+    level = get_business_level(user_id, business_id)
 
-    if business_id < 1 or business_id > len(BUSINESSES):
-        bot.send_message(message.chat.id, "Нет такого бизнеса!")
-        return
+    msg = f"=== {biz['name']} ===\n\n"
+    msg += f"💰 Цена: {biz['price']} монет\n"
+    msg += f"📈 Доход: {biz['income']} монет/час\n"
+    if owned:
+        msg += f"📊 Уровень: {level}\n"
+        msg += f"✅ Статус: ВЛАДЕЕШЬ\n"
+    else:
+        msg += f"❌ Статус: НЕТ\n"
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    if not owned:
+        markup.add(telebot.types.InlineKeyboardButton("💰 Купить", callback_data=f"buy_{business_id}"))
+    markup.add(telebot.types.InlineKeyboardButton("⬅️ Назад к списку", callback_data="back_to_businesses"))
+    markup.add(telebot.types.InlineKeyboardButton("❌ Закрыть", callback_data="close"))
+
+    bot.edit_message_text(
+        msg,
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
+def buy_business_callback(call):
+    user_id = call.from_user.id
+    user = get_user(user_id)
+    business_id = int(call.data.split("_")[1])
+    biz = BUSINESSES[business_id - 1]
 
     if get_business_level(user_id, business_id) > 0:
-        bot.send_message(message.chat.id, "У тебя уже есть этот бизнес!")
+        bot.answer_callback_query(call.id, "У тебя уже есть этот бизнес!")
         return
 
-    b = BUSINESSES[business_id - 1]
-    if user["money"] < b["price"]:
-        bot.send_message(message.chat.id, f"Нужно {b['price']} монет!")
+    if user["money"] < biz["price"]:
+        bot.answer_callback_query(call.id, f"Нужно {biz['price']} монет! У тебя {user['money']}")
         return
 
-    update_money(user_id, -b["price"])
+    update_money(user_id, -biz["price"])
     buy_business(user_id, business_id)
     add_xp(user_id, 50)
-    bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["мои бизнесы"])
-def mybusiness(message):
+    bot.answer_callback_query(call.id, f"Куплен: {biz['name']}! +50 XP")
+
+    msg = f"=== {biz['name']} ===\n\n"
+    msg += f"💰 Цена: {biz['price']} монет\n"
+    msg += f"📈 Доход: {biz['income']} монет/час\n"
+    msg += f"✅ Статус: ВЛАДЕЕШЬ\n"
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(telebot.types.InlineKeyboardButton("⬅️ Назад к списку", callback_data="back_to_businesses"))
+    markup.add(telebot.types.InlineKeyboardButton("❌ Закрыть", callback_data="close"))
+
+    bot.edit_message_text(
+        msg,
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "back_to_businesses")
+def back_to_businesses(call):
+    user_id = call.from_user.id
+    user = get_user(user_id)
+    if not user:
+        bot.answer_callback_query(call.id)
+        return
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    for b in BUSINESSES:
+        owned = get_business_level(user_id, b["id"]) > 0
+        status = "✅" if owned else ""
+        markup.add(telebot.types.InlineKeyboardButton(
+            f"{b['id']}. {b['name']} {status}",
+            callback_data=f"biz_{b['id']}"
+        ))
+
+    bot.edit_message_text(
+        "=== МАГАЗИН БИЗНЕСОВ ===\n"
+        "Нажми на бизнес для просмотра:",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=markup
+    )
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == "close")
+def close_message(call):
+    bot.delete_message(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    bot.answer_callback_query(call.id)
+
+@bot.message_handler(func=lambda message: message.text == "Мои бизнесы")
+def my_businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -297,29 +378,45 @@ def mybusiness(message):
 
     bot.send_message(message.chat.id, msg)
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["банда"])
+@bot.message_handler(func=lambda message: message.text == "Банда")
 def gang(message):
     bot.send_message(message.chat.id,
         "=== БАНДА ===\n\n"
         "Функция в разработке!\n"
         "Скоро здесь появится создание и управление бандами.")
 
-@bot.message_handler(func=lambda message: message.text.lower() in ["помощь"])
+@bot.message_handler(func=lambda message: message.text == "Донат")
+def donate(message):
+    bot.send_message(message.chat.id,
+        "=== ДОНАТ ===\n\n"
+        "Кэш — 100 монет (50 руб)\n"
+        "Кэш+ — 500 монет (200 руб)\n"
+        "VIP — 1000 монет (400 руб)\n\n"
+        "Для покупки напиши @SupportBot")
+
+@bot.message_handler(func=lambda message: message.text == "Помощь")
 def help_msg(message):
     bot.send_message(message.chat.id,
         "=== ПОМОЩЬ ===\n\n"
-        "старт — регистрация\n"
-        "профиль — твоя статистика\n"
-        "квартирник — заработать монеты\n"
-        "бизнесы — магазин бизнесов\n"
-        "купить бизнес N — купить бизнес\n"
-        "мои бизнесы — твои бизнесы\n"
-        "банда — управление бандой (скоро)\n"
-        "помощь — это меню")
+        "Квартирник — заработать монеты\n"
+        "Профиль — твоя статистика\n"
+        "Бизнесы — магазин бизнесов (с кнопками)\n"
+        "Мои бизнесы — твои бизнесы\n"
+        "Банда — скоро\n"
+        "Донат — покупка Кэш")
+
+@bot.message_handler(func=lambda message: message.text == "О боте")
+def about(message):
+    bot.send_message(message.chat.id,
+        "=== О БОТЕ ===\n\n"
+        "MusicWar Bot\n"
+        "50 уровней\n"
+        "12 бизнесов\n"
+        "4 группировки")
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
-    bot.send_message(message.chat.id, "Неизвестная команда. Напиши помощь")
+    bot.send_message(message.chat.id, "Неизвестная команда. Используй кнопки внизу.")
 
 if __name__ == "__main__":
     init_db()
