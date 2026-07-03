@@ -126,8 +126,6 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
-# ===== ГРУППИРОВКА (ТОЛЬКО ПРИ РЕГИСТРАЦИИ) =====
-
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     start(message)
@@ -164,8 +162,6 @@ def set_group_callback(call):
     bot.edit_message_text(f"Ты выбрал группировку: {group_name}!", chat_id=call.message.chat.id, message_id=call.message.message_id)
     bot.answer_callback_query(call.id)
 
-# ===== КВАРТИРНИК =====
-
 @bot.message_handler(commands=['квартирник'])
 def attack_cmd(message):
     attack(message)
@@ -200,7 +196,45 @@ def attack(message):
 
     bot.send_message(message.chat.id, msg)
 
-# ===== БИЗНЕСЫ =====
+@bot.message_handler(commands=['профиль'])
+def profile_cmd(message):
+    profile(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["профиль"])
+def profile_rus(message):
+    profile(message)
+
+def profile(message):
+    user_id = message.chat.id
+    user = get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "Напиши /start")
+        return
+
+    group = user["group_name"] or "не выбрана"
+    businesses = get_user_businesses(user_id)
+    total_income = 0
+    for b in businesses:
+        biz = BUSINESSES[b["business_id"] - 1]
+        income = biz["income"] * (1 + b["level"] * 0.1)
+        total_income += income
+
+    level_bonus = (user["level"] // 10) * 5
+    total_income = int(total_income * (1 + level_bonus / 100))
+    rank = get_rank(user["level"])
+    xp_for_next = user["level"] * 100
+
+    msg = f"=== ПРОФИЛЬ ===\n\n"
+    msg += f"Игрок: {user['username']}\n"
+    msg += f"Группировка: {group}\n"
+    msg += f"Уровень: {user['level']} ({rank})\n"
+    msg += f"Опыт: {user['xp']}/{xp_for_next}\n"
+    msg += f"Монет: {user['money']}\n"
+    msg += f"Доход: {total_income} монет/час"
+    if level_bonus > 0:
+        msg += f"\nБонус уровня: +{level_bonus}%"
+
+    bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(commands=['бизнесы'])
 def businesses_cmd(message):
@@ -226,8 +260,6 @@ def businesses(message):
     msg += "Напиши: /купить N"
 
     bot.send_message(message.chat.id, msg)
-
-# ===== КУПИТЬ БИЗНЕС =====
 
 @bot.message_handler(commands=['купить'])
 def buy_cmd(message):
@@ -272,8 +304,6 @@ def buy(message):
     add_xp(user_id, 50)
     bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
-# ===== МОИ БИЗНЕСЫ =====
-
 @bot.message_handler(commands=['моибизнесы'])
 def mybusiness_cmd(message):
     mybusiness(message)
@@ -309,8 +339,6 @@ def mybusiness(message):
 
     bot.send_message(message.chat.id, msg)
 
-# ===== БАНДА =====
-
 @bot.message_handler(commands=['банда'])
 def gang_cmd(message):
     gang(message)
@@ -323,9 +351,19 @@ def gang(message):
     bot.send_message(message.chat.id,
         "=== БАНДА ===\n\n"
         "Функция в разработке!\n"
-        "Скоро здесь появится создание и управление бандами.")
+        "Скоро здесь появится создание и управление бандами.\n\n"
+        "Команды:\n"
+        "/банда — информация\n"
+        "/создать_банду [название] — создать банду\n"
+        "/вступить_в_банду [название] — вступить в банду")
 
-# ===== ПОМОЩЬ =====
+@bot.message_handler(commands=['создать_банду'])
+def create_gang_cmd(message):
+    bot.send_message(message.chat.id, "Функция создания банды скоро появится!")
+
+@bot.message_handler(commands=['вступить_в_банду'])
+def join_gang_cmd(message):
+    bot.send_message(message.chat.id, "Функция вступления в банду скоро появится!")
 
 @bot.message_handler(commands=['помощь'])
 def help_cmd(message):
@@ -339,11 +377,12 @@ def help_msg(message):
     bot.send_message(message.chat.id,
         "=== ПОМОЩЬ ===\n\n"
         "/start или старт — регистрация\n"
+        "/профиль или профиль — твоя статистика\n"
         "/квартирник или квартирник — заработать монеты\n"
         "/бизнесы или бизнесы — магазин бизнесов\n"
         "/купить N или купить бизнес N — купить бизнес\n"
         "/моибизнесы или мои бизнесы — твои бизнесы\n"
-        "/банда или банда — управление бандой (скоро)\n"
+        "/банда или банда — управление бандой\n"
         "/помощь или помощь — это меню")
 
 @bot.message_handler(func=lambda message: True)
