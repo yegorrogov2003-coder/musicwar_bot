@@ -127,6 +127,13 @@ BUSINESSES = [
 ]
 
 @bot.message_handler(commands=['start'])
+def start_cmd(message):
+    start(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["старт", "/start"])
+def start_rus(message):
+    start(message)
+
 def start(message):
     user_id = message.chat.id
     username = message.from_user.username or "без_юзернейма"
@@ -156,6 +163,13 @@ def set_group_callback(call):
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(commands=['квартирник'])
+def attack_cmd(message):
+    attack(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["квартирник"])
+def attack_rus(message):
+    attack(message)
+
 def attack(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -183,6 +197,13 @@ def attack(message):
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(commands=['профиль'])
+def profile_cmd(message):
+    profile(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["профиль"])
+def profile_rus(message):
+    profile(message)
+
 def profile(message):
     user_id = message.chat.id
     user = get_user(user_id)
@@ -216,7 +237,14 @@ def profile(message):
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(commands=['бизнесы'])
-def show_businesses(message):
+def businesses_cmd(message):
+    businesses(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["бизнесы"])
+def businesses_rus(message):
+    businesses(message)
+
+def businesses(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -234,7 +262,14 @@ def show_businesses(message):
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(commands=['купить'])
-def buy_business_command(message):
+def buy_cmd(message):
+    buy(message)
+
+@bot.message_handler(func=lambda message: message.text.lower().startswith("купить бизнес"))
+def buy_rus(message):
+    buy(message)
+
+def buy(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -242,9 +277,14 @@ def buy_business_command(message):
         return
 
     try:
-        business_id = int(message.text.split()[1])
+        # Парсим число из сообщения
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.send_message(message.chat.id, "Формат: /купить N или Купить бизнес N")
+            return
+        business_id = int(parts[-1])
     except:
-        bot.send_message(message.chat.id, "Формат: /купить N")
+        bot.send_message(message.chat.id, "Формат: /купить N или Купить бизнес N")
         return
 
     if business_id < 1 or business_id > len(BUSINESSES):
@@ -266,7 +306,14 @@ def buy_business_command(message):
     bot.send_message(message.chat.id, f"Куплен: {b['name']}! +50 XP")
 
 @bot.message_handler(commands=['моибизнесы'])
-def my_businesses(message):
+def mybusiness_cmd(message):
+    mybusiness(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["мои бизнесы"])
+def mybusiness_rus(message):
+    mybusiness(message)
+
+def mybusiness(message):
     user_id = message.chat.id
     user = get_user(user_id)
     if not user:
@@ -294,15 +341,23 @@ def my_businesses(message):
     bot.send_message(message.chat.id, msg)
 
 @bot.message_handler(commands=['помощь'])
-def help_command(message):
+def help_cmd(message):
+    help_msg(message)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ["помощь"])
+def help_rus(message):
+    help_msg(message)
+
+def help_msg(message):
     bot.send_message(message.chat.id,
         "=== ПОМОЩЬ ===\n\n"
-        "/квартирник — заработать монеты и опыт\n"
-        "/профиль — твоя статистика\n"
-        "/бизнесы — магазин бизнесов\n"
-        "/купить N — купить бизнес N\n"
-        "/моибизнесы — твои бизнесы\n"
-        "/помощь — это меню")
+        "/start или старт — регистрация\n"
+        "/квартирник или квартирник — заработать монеты\n"
+        "/профиль или профиль — статистика\n"
+        "/бизнесы или бизнесы — магазин\n"
+        "/купить N или купить бизнес N — купить бизнес\n"
+        "/моибизнесы или мои бизнесы — твои бизнесы\n"
+        "/помощь или помощь — это меню")
 
 @bot.message_handler(func=lambda message: True)
 def unknown(message):
