@@ -6,7 +6,7 @@ import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 
-TOKEN = "8824209793:AAH0TEi9hZ0_pQef1uc2W6xI1f6njNU913W0"
+TOKEN = "8948916925:AAEfheMCKFPhsM3zncyVNGuR-vaeB-v_kTw"
 bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = "musicwar.db"
