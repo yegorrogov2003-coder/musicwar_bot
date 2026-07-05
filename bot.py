@@ -3,6 +3,8 @@ import random
 import sqlite3
 import os
 import time
+from flask import Flask
+import threading
 
 TOKEN = "8824209793:AAH0TEi9hZ0_pQef1uc2W6xI1f6njNU913W0"
 bot = telebot.TeleBot(TOKEN)
@@ -314,10 +316,25 @@ def help_msg(message):
 def unknown(message):
     bot.send_message(message.chat.id, "Неизвестная команда. Напиши /помощь")
 
+# ===== FLASK ДЛЯ RENDER =====
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "MusicWar Bot is running!"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=10000)
+
+thread = threading.Thread(target=run_flask)
+thread.daemon = True
+thread.start()
+
 if __name__ == "__main__":
     init_db()
     print("БОТ ЗАПУЩЕН!")
     print("MusicWar Bot готов к работе!")
+    print("Flask сервер запущен на порту 10000")
 
     while True:
         try:
