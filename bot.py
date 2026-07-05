@@ -3,14 +3,14 @@ import random
 import sqlite3
 import os
 import time
-from flask import Flask
-import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 TOKEN = "8824209793:AAH0TEi9hZ0_pQef1uc2W6xI1f6njNU913W0"
 bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = "musicwar.db"
 
+# ===== ВСЕ ТВОИ ФУНКЦИИ (те же самые) =====
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -128,6 +128,7 @@ BUSINESSES = [
     {"id": 12, "name": "Медиаимперия", "price": 300000000, "income": 18000000}
 ]
 
+# ===== ОБРАБОТЧИКИ КОМАНД =====
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.chat.id
@@ -316,17 +317,19 @@ def help_msg(message):
 def unknown(message):
     bot.send_message(message.chat.id, "Неизвестная команда. Напиши /помощь")
 
-# ===== FLASK ДЛЯ RENDER =====
-app = Flask(__name__)
+# ===== ПРОСТОЙ HTTP СЕРВЕР ДЛЯ RENDER =====
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"MusicWar Bot is running!")
 
-@app.route('/')
-def home():
-    return "MusicWar Bot is running!"
+def run_server():
+    server = HTTPServer(('0.0.0.0', 10000), Handler)
+    server.serve_forever()
 
-def run_flask():
-    app.run(host='0.0.0.0', port=10000)
-
-thread = threading.Thread(target=run_flask)
+import threading
+thread = threading.Thread(target=run_server)
 thread.daemon = True
 thread.start()
 
@@ -334,7 +337,7 @@ if __name__ == "__main__":
     init_db()
     print("БОТ ЗАПУЩЕН!")
     print("MusicWar Bot готов к работе!")
-    print("Flask сервер запущен на порту 10000")
+    print("HTTP сервер запущен на порту 10000")
 
     while True:
         try:
