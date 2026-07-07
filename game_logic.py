@@ -1,6 +1,90 @@
 import time
-import random
+import sqlite3
 
+# --- БАЗА ДАННЫХ ---
+def get_db_connection():
+    conn = sqlite3.connect('game.db', check_same_thread=False)
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            balance INTEGER DEFAULT 0,
+            level INTEGER DEFAULT 1,
+            xp INTEGER DEFAULT 0,
+            gang_id INTEGER DEFAULT NULL,
+            gang_role TEXT DEFAULT 'none',
+            fans INTEGER DEFAULT 0,
+            district_bonus REAL DEFAULT 1.0,
+            last_kvartirnik REAL DEFAULT 0
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_businesses (
+            user_id INTEGER,
+            biz_id INTEGER,
+            level INTEGER DEFAULT 1,
+            PRIMARY KEY (user_id, biz_id)
+        )
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS gangs (
+            gang_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            owner_id INTEGER,
+            district TEXT,
+            bonus_type TEXT,
+            bonus_value REAL
+        )
+    ''')
+    return conn
+
+def get_user(user_id, username="Аноним"):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
+    row = cur.fetchone()
+    if not row:
+        cur.execute('INSERT INTO users (user_id, username, balance) VALUES (?, ?, ?)', 
+                    (user_id, username, 10000))
+        conn.commit()
+        cur.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
+        row = cur.fetchone()
+    conn.close()
+    
+    # Преобразуем кортеж в словарь
+    user = {
+        "user_id": row, "username": row, "balance": row,
+        "level": row, "xp": row, "gang_id": row,
+        "gang_role": row, "fans": row, "district_bonus": row,
+        "last_kvartirnik": row
+    }
+    
+    # Загружаем бизнесы
+    cur = conn.cursor()
+    cur.execute('SELECT biz_id, level FROM user_businesses WHERE user_id = ?', (user_id,))
+    user["businesses"] = {row: row for row in cur.fetchall()}
+    return user
+
+def save_user(user):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        UPDATE users SET username=?, balance=?, level=?, xp=?, gang_id=?, 
+        gang_role=?, fans=?, district_bonus=?, last_kvartirnik=?
+        WHERE user_id=?
+    ''', (user["username"], user["balance"], user["level"], user["xp"],
+          user["gang_id"], user["gang_role"], user["fans"],
+          user["district_bonus"], user["last_kvartirnik"], user["user_id"]))
+    
+    # Обновляем бизнесы
+    cur.execute('DELETE FROM user_businesses WHERE user_id = ?', (user["user_id"],))
+    for biz_id, lvl in user["businesses"].items():
+        cur.execute('INSERT OR REPLACE INTO user_businesses (user_id, biz_id, level) VALUES (?, ?, ?)',
+                    (user["user_id"], biz_id, lvl))
+    conn.commit()
+    conn.close()
+
+# --- ДАННЫЕ ИГРЫ ---
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "base_price": 50000, "base_income": 5000, "max_level": 10},
     {"id": 2, "name": "Студия звука", "base_price": 120000, "base_income": 10000, "max_level": 10},
@@ -22,83 +106,7 @@ DISTRICTS = {
     "Бас-квартал": {"bonus_type": "raid", "value": 1.3}
 }
 
-USERS = {}
-
-def get_user(user_id):
-    if user_id not in USERS:
-        USERS[user_id] = {
-            "id": user_id,
-            "balance": 10000,
-            "cash": 0,
-            "xp": 0,
-            "level": 1,
-            "businesses": {},
-            "last_kvartirnik": 0,
-            "last_label_show": 0,
-            "gang_id": None,
-            "gang_role": "none",
-            "fans": 0,
-            "vip_until": 0,
-            "global_boost_active": False,
-            "district_bonus": 1.0
-        }
-    return USERS[user_id]
-
-def calculate_income_multiplier(user):
-    multiplier = 1.0
-    for biz_id, level in user["businesses"].items():
-        multiplier *= (1 + (0.1 * level))
-    if user["fans"] > 100000:
-        multiplier *= 1.3
-    elif user["fans"] > 10000:
-        multiplier *= 1.2
-    elif user["fans"] > 1000:
-        multiplier *= 1.1
-    elif user["fans"] > 100:
-        multiplier *= 1.05
-    multiplier *= user["district_bonus"]
-    if user["vip_until"] > time.time():
-        multiplier *= 1.2
-    if user["global_boost_active"]:
-        multiplier *= 2.0
-    return multiplier
-
-def calculate_passive_income(user):
-    total_income = 0
-    mult = calculate_income_multiplier(user)
-    for biz_id, level in user["businesses"].items():
-        biz = next((b for b in BUSINESSES if b["id"] == biz_id), None)
-        if not biz: continue
-        level_mult = 1 + (0.1 * level)
-        total_income += int(biz["base_income"] * level_mult)
-    return int(total_income * mult)
-
-def get_profile_text(user):
-    text = (
-        f"👤 **Профиль Music War**\n\n"
-        f"💰 Баланс: {user['balance']:,}\n"
-        f"💎 Кэш: {user['cash']:,}\n"
-        f"📈 Уровень: {user['level']} ({user['xp']} XP)\n"
-    )
-    if user["gang_id"]:
-        text += f"🏙️ Банда: ID {user['gang_id']} | Роль: {user['gang_role']}\n"
-        text += f"🛡️ Район: Бонус x{user['district_bonus']}\n"
-    else:
-        text += "🏙️ Банда: Не состоит\n"
-    if user["fans"] > 0:
-        text += f"🎸 Фанаты: {user['fans']:,}\n"
-    if user["vip_until"] > time.time():
-        text += f"👑 VIP активен\n"
-    text += "\n🏢 Бизнесы:\n"
-    if not user["businesses"]:
-        text += "   (Нет бизнесов)\n"
-    else:
-        for biz_id, level in user["businesses"].items():
-            biz = next((b for b in BUSINESSES if b["id"] == biz_id), None)
-            if biz:
-                text += f"   • {biz['name']} (Lvl {level})\n"
-    return text
-
+# --- ЛОГИКА КВАРТИРНИКОВ (КД 1.5 минуты = 90 сек) ---
 def can_do_kvartirnik(user):
     cooldown_seconds = 90
     now = time.time()
@@ -110,53 +118,46 @@ def can_do_kvartirnik(user):
 def do_kvartirnik(user):
     user["last_kvartirnik"] = time.time()
     base_reward = 1500 + (user["level"] * 200)
-    reward = int(base_reward / 4)
+    reward = int(base_reward)
     xp = 50 + (user["level"] * 5)
-    if user["gang_id"] and user["district_bonus"] > 1.0:
+    
+    # Бонус от банды/района
+    if user["district_bonus"] > 1.0:
         reward = int(reward * user["district_bonus"])
         xp = int(xp * user["district_bonus"])
+        
     user["balance"] += reward
     user["xp"] += xp
+    
+    # Проверка уровня
     lvl_up = False
     while user["xp"] >= user["level"] * 200:
         user["level"] += 1
         lvl_up = True
+        
+    save_user(user)
     return reward, xp, lvl_up
 
-def can_do_label_show(user):
-    cooldown_seconds = 3600
-    now = time.time()
-    time_since = now - user["last_label_show"]
-    if time_since >= cooldown_seconds:
-        return True, 0
-    return False, int(cooldown_seconds - time_since)
-
-def do_label_show(user):
-    user["last_label_show"] = time.time()
-    base_money = 50000
-    base_fans = 50
-    biz_bonus = 1.0
-    for lvl in user["businesses"].values():
-        biz_bonus += (0.05 * lvl)
-    money_reward = int(base_money * biz_bonus)
-    fans_reward = int(base_fans * biz_bonus)
-    user["balance"] += money_reward
-    user["fans"] += fans_reward
-    return money_reward, fans_reward
-
+# --- ЛОГИКА БИЗНЕСОВ ---
 def buy_business(user, biz_id):
     biz = next((b for b in BUSINESSES if b["id"] == biz_id), None)
     if not biz:
         return False, "❌ Бизнес не найден."
+    
     current_level = user["businesses"].get(biz_id, 0)
     if current_level >= biz["max_level"]:
         return False, f"🏆 {biz['name']} уже на макс. уровне!"
+    
     next_level = current_level + 1
+    # Цена растет с уровнем: базовая цена * 0.1 * уровень
     price = int(biz["base_price"] * 0.1 * next_level)
+    
     if user["balance"] < price:
         return False, f"❌ Не хватает денег! Нужно {price:,}, у тебя {user['balance']:,}."
+    
     user["balance"] -= price
     user["businesses"][biz_id] = next_level
+    save_user(user)
     return True, f"✅ Прокачан {biz['name']} до Lvl {next_level} за {price:,}!"
 
 def get_business_display_info(user):
@@ -167,11 +168,13 @@ def get_business_display_info(user):
         "Продакшн": "🎬", "Ночной клуб": "🌃", "Радио": "📻",
         "Клипмейкер": "🎥", "ТВ-канал": "📺", "Медиаимперия": "🌐"
     }
+    
     for biz in BUSINESSES:
         biz_id = biz["id"]
         current_lvl = user["businesses"].get(biz_id, 0)
         current_income = int(biz["base_income"] * (1 + (0.1 * current_lvl)))
         next_lvl = current_lvl + 1
+        
         if current_lvl >= biz["max_level"]:
             price_text = "🏆 Макс. уровень"
             buy_btn_text = None
@@ -179,6 +182,7 @@ def get_business_display_info(user):
             price = int(biz["base_price"] * 0.1 * next_lvl)
             price_text = f"{price:,}\$"
             buy_btn_text = f"Купить {biz['name']}"
+            
         info_list.append({
             "name": biz["name"],
             "emoji": emoji_map.get(biz["name"], "🏢"),
@@ -189,45 +193,44 @@ def get_business_display_info(user):
         })
     return info_list
 
-def buy_with_cash(user, item_type):
-    prices = {
-        "100k_coins": {"cash": 5, "coins": 100000},
-        "1m_coins": {"cash": 40, "coins": 1000000},
-        "boost_2x": {"cash": 10, "type": "boost"},
-        "vip_1d": {"cash": 20, "type": "vip"},
-        "case": {"cash": 10, "type": "case"},
-        "100_fans": {"cash": 5, "fans": 100},
-        "1k_fans": {"cash": 40, "fans": 1000},
-        "10k_fans": {"cash": 300, "fans": 10000},
-    }
-    item = prices.get(item_type)
-    if not item:
-        return False, "❌ Товар не найден"
-    if user["cash"] < item["cash"]:
-        return False, f"❌ Не хватает Кэш! Нужно {item['cash']}, у тебя {user['cash']}."
-    user["cash"] -= item["cash"]
-    if "coins" in item:
-        user["balance"] += item["coins"]
-        return True, f"✅ Получено {item['coins']:,} монет!"
-    elif "fans" in item:
-        user["fans"] += item["fans"]
-        return True, f"✅ Получено {item['fans']:,} фанатов!"
-    elif item.get("type") == "boost":
-        user["global_boost_active"] = True
-        return True, "✅ Активирован буст x2 на 1 час!"
-    elif item.get("type") == "vip":
-        user["vip_until"] = time.time() + 86400
-        return True, "✅ VIP активен 24 часа!"
-    elif item.get("type") == "case":
-        rand = random.randint(1, 3)
-        if rand == 1:
-            user["balance"] += 500000
-            return True, "📦 Кейс: +500,000 монет!"
-        elif rand == 2:
-            user["fans"] += 500
-            return True, "📦 Кейс: +500 фанатов!"
-        else:
-            user["vip_until"] = time.time() + 3600
-            return True, "📦 Кейс: VIP на 1 час!"
-    return False, "Ошибка покупки"
+# --- ЛОГИКА БАНД ---
+def create_gang(user, name, district):
+    if user["gang_id"] is not None:
+        return False, "❌ Ты уже состоишь в банде!"
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('INSERT INTO gangs (name, owner_id, district, bonus_type, bonus_value) VALUES (?, ?, ?, ?, ?)',
+                (name, user["user_id"], district, "income", 1.3)) # Пример бонуса
+    gang_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    
+    user["gang_id"] = gang_id
+    user["gang_role"] = "boss"
+    user["district_bonus"] = 1.3
+    save_user(user)
+    return True, f"✅ Банда '{name}' создана в районе '{district}'!"
+
+def get_profile_text(user):
+    text = (
+        f"👤 **Профиль Music War**\n\n"
+        f"💰 Баланс: {user['balance']:,}\n"
+        f"📈 Уровень: {user['level']} ({user['xp']} XP)\n"
+    )
+    if user["gang_id"]:
+        text += f"🏙️ Банда: ID {user['gang_id']} | Роль: {user['gang_role']}\n"
+        text += f"🛡️ Районный бонус: x{user['district_bonus']}\n"
+    else:
+        text += "🏙️ Банда: Не состоит\n"
         
+    text += "\n🏢 Бизнесы:\n"
+    if not user["businesses"]:
+        text += "   (Нет бизнесов)\n"
+    else:
+        for biz_id, level in user["businesses"].items():
+            biz = next((b for b in BUSINESSES if b["id"] == biz_id), None)
+            if biz:
+                text += f"   • {biz['name']} (Lvl {level})\n"
+    return text
+    
