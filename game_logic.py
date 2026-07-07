@@ -1,7 +1,6 @@
 import time
 import random
 
-# --- НАСТРОЙКИ БИЗНЕСОВ ---
 BUSINESSES = [
     {"id": 1, "name": "Битмейкер", "base_price": 50000, "base_income": 5000, "max_level": 10},
     {"id": 2, "name": "Студия звука", "base_price": 120000, "base_income": 10000, "max_level": 10},
@@ -49,7 +48,6 @@ def calculate_income_multiplier(user):
     multiplier = 1.0
     for biz_id, level in user["businesses"].items():
         multiplier *= (1 + (0.1 * level))
-    
     if user["fans"] > 100000:
         multiplier *= 1.3
     elif user["fans"] > 10000:
@@ -58,7 +56,6 @@ def calculate_income_multiplier(user):
         multiplier *= 1.1
     elif user["fans"] > 100:
         multiplier *= 1.05
-    
     multiplier *= user["district_bonus"]
     if user["vip_until"] > time.time():
         multiplier *= 1.2
@@ -102,7 +99,6 @@ def get_profile_text(user):
                 text += f"   • {biz['name']} (Lvl {level})\n"
     return text
 
-# Квартирник: КД 90 сек, награда снижена для баланса
 def can_do_kvartirnik(user):
     cooldown_seconds = 90
     now = time.time()
@@ -114,23 +110,19 @@ def can_do_kvartirnik(user):
 def do_kvartirnik(user):
     user["last_kvartirnik"] = time.time()
     base_reward = 1500 + (user["level"] * 200)
-    reward = int(base_reward / 4)  # снижено в 4 раза
+    reward = int(base_reward / 4)
     xp = 50 + (user["level"] * 5)
-    
     if user["gang_id"] and user["district_bonus"] > 1.0:
         reward = int(reward * user["district_bonus"])
         xp = int(xp * user["district_bonus"])
-
     user["balance"] += reward
     user["xp"] += xp
-    
     lvl_up = False
     while user["xp"] >= user["level"] * 200:
         user["level"] += 1
         lvl_up = True
     return reward, xp, lvl_up
 
-# Лейблы (групповые выступления)
 def can_do_label_show(user):
     cooldown_seconds = 3600
     now = time.time()
@@ -152,7 +144,6 @@ def do_label_show(user):
     user["fans"] += fans_reward
     return money_reward, fans_reward
 
-# Покупка/прокачка бизнеса
 def buy_business(user, biz_id):
     biz = next((b for b in BUSINESSES if b["id"] == biz_id), None)
     if not biz:
@@ -186,19 +177,18 @@ def get_business_display_info(user):
             buy_btn_text = None
         else:
             price = int(biz["base_price"] * 0.1 * next_lvl)
-            price_text = f"{price:,}$"
+            price_text = f"{price:,}\$"
             buy_btn_text = f"Купить {biz['name']}"
         info_list.append({
             "name": biz["name"],
             "emoji": emoji_map.get(biz["name"], "🏢"),
             "price": price_text,
-            "income": f"{current_income:,}$",
+            "income": f"{current_income:,}\$",
             "current_lvl": current_lvl,
             "buy_btn_text": buy_btn_text
         })
     return info_list
 
-# Донат (Кэш)
 def buy_with_cash(user, item_type):
     prices = {
         "100k_coins": {"cash": 5, "coins": 100000},
@@ -240,4 +230,4 @@ def buy_with_cash(user, item_type):
             user["vip_until"] = time.time() + 3600
             return True, "📦 Кейс: VIP на 1 час!"
     return False, "Ошибка покупки"
-    
+        
