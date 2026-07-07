@@ -2,6 +2,8 @@ from telebot import types
 from game_logic import get_user, can_do_kvartirnik, do_kvartirnik, buy_business, calculate_passive_income, get_profile_text, BUSINESSES
 
 def register_handlers(bot):
+    """Регистрирует все команды и кнопки для бота."""
+    
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         user = get_user(message.from_user.id)
@@ -52,14 +54,12 @@ def register_handlers(bot):
             
             text += f"{biz['name']} (Ур. {current_lvl}) — {status}\n"
         
-        text += "\nНажми на название бизнеса, чтобы купить (в следующей версии будет кнопка). Пока просто знай цены!"
-        # Для демо-версии просто выводим список. Кнопки с ID сделаем позже, если захочешь.
+        text += "\nНажми на название бизнеса, чтобы купить (в следующей версии будет кнопка)."
         bot.reply_to(message, text)
 
     @bot.message_handler(func=lambda m: m.text == "👤 Мой профиль")
     def handle_profile(message):
         user = get_user(message.from_user.id)
-        # Сначала начисляем пассивный доход
         income = calculate_passive_income(user)
         text = get_profile_text(user)
         if income > 0:
@@ -77,6 +77,5 @@ def register_handlers(bot):
 
     @bot.message_handler(content_types=['text'])
     def echo_all(message):
-        # Если нажали не ту кнопку
         bot.reply_to(message, "Нажми на кнопку в меню! 👇")
-      
+        
