@@ -1,13 +1,10 @@
 import os
 import telebot
-from handlers import register_handlers, start_polling
+from handlers import register_handlers
 
 # --- НАСТРОЙКИ ---
-
-# Получаем токен из переменной окружения (Render Environment)
 TOKEN = os.environ.get("BOT_TOKEN")
 
-# Критическая проверка: если токена нет, сразу падаем с понятной ошибкой в логах
 if not TOKEN:
     raise ValueError(
         "❌ КРИТИЧЕСКАЯ ОШИБКА: ТОКЕН НЕ НАЙДЕН!\n"
@@ -20,13 +17,17 @@ if not TOKEN:
 bot = telebot.TeleBot(TOKEN)
 
 # --- ЗАПУСК ---
-
 if __name__ == '__main__':
     print("🔌 Сборка бота с экономикой и КД...")
     
-    # Подключаем всю логику команд из handlers.py
+    # Подключаем все команды из handlers.py
     register_handlers(bot)
     
     print("🚀 Запуск polling режима (ожидание сообщений)...")
-    start_polling(bot)
     
+    # ВАЖНО: Запускаем поллинг прямо здесь, а не импортируем функцию
+    try:
+        bot.polling(none_stop=True, interval=0, timeout=20)
+    except Exception as e:
+        print(f"💥 Ошибка при запуске бота: {e}")
+        
