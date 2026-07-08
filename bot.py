@@ -5,7 +5,7 @@ from src.config import EMOJI_MAP
 from src.user import get_user
 
 # Вставь сюда свой токен от BotFather
-BOT_TOKEN = "ТВОЙ_ТОКЕН_ЗДЕСЬ"
+BOT_TOKEN = "8948916925:AAEwHnUEp5CWkyow8tnwgAmadPbOEHyy6Ds"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
